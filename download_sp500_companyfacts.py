@@ -82,6 +82,7 @@ def pivot_quarterly(df: pd.DataFrame, items: Iterable[str] | None = None) -> pd.
     pivot = pivot.reindex(columns=ordered_quarters)
     return pivot
 
+
 def main():
     tickers = load_sp500_tickers()
     ticker_to_cik = load_cik_mapping()
@@ -104,6 +105,8 @@ def main():
         if pivot.empty:
             continue
         pivot.to_excel(output / f"{ticker.upper()}.xlsx")
+
+        df.to_csv(output / f"{ticker.upper()}.csv", index=False)
         print(f"Saved {ticker.upper()} ({cik})")
         time.sleep(0.2)  # be gentle with SEC servers
 
