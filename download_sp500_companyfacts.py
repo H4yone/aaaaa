@@ -3,6 +3,7 @@ import pandas as pd
 import json
 import time
 from pathlib import Path
+from typing import Iterable
 
 HEADERS = {"User-Agent": "my research script (myemail@example.com)"}
 
@@ -56,6 +57,31 @@ def flatten_facts(facts: dict, forms=("10-Q", "10-K")) -> pd.DataFrame:
         df.sort_values(["end", "tag"], inplace=True)
     return df
 
+
+def pivot_quarterly(df: pd.DataFrame, items: Iterable[str] | None = None) -> pd.DataFrame:
+    """Return a pivoted table (tag x quarter) sorted oldest to newest."""
+    qdf = df[(df["form"] == "10-Q") & (df["uom"] == "USD")].copy()
+    if items is not None:
+        qdf = qdf[qdf["tag"].isin(items)]
+
+    qdf["quarter_num"] = qdf["fp"].str.extract(r"Q(\d)").astype(float)
+    qdf = qdf.dropna(subset=["quarter_num", "fy"])
+    qdf["quarter_num"] = qdf["quarter_num"].astype(int)
+    qdf["year"] = qdf["fy"].astype(int)
+    qdf["quarter"] = qdf["quarter_num"].astype(str) + "Q" + qdf["year"].astype(str)
+
+    # Determine chronological order of quarters
+    order = (
+        qdf[["year", "quarter_num", "quarter"]]
+        .drop_duplicates()
+        .sort_values(["year", "quarter_num"])
+    )
+    ordered_quarters = order["quarter"].tolist()
+
+    pivot = qdf.pivot_table(index="tag", columns="quarter", values="value", aggfunc="first")
+    pivot = pivot.reindex(columns=ordered_quarters)
+    return pivot
+
 def main():
     tickers = load_sp500_tickers()
     ticker_to_cik = load_cik_mapping()
@@ -74,7 +100,10 @@ def main():
         df = flatten_facts(facts["facts"])
         if df.empty:
             continue
-        df.to_csv(output / f"{ticker.upper()}.csv", index=False)
+        pivot = pivot_quarterly(df)
+        if pivot.empty:
+            continue
+        pivot.to_excel(output / f"{ticker.upper()}.xlsx")
         print(f"Saved {ticker.upper()} ({cik})")
         time.sleep(0.2)  # be gentle with SEC servers
 
