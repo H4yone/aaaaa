@@ -6,6 +6,7 @@ import { buildSetupOrder, canAfford, deductCost, getBuildCost, getTradeRate, isV
 import { applyEvent, maybeRollEvent } from '../game/events';
 import { checkWinner, totalVPs, updateSpecialAwards } from '../game/scoring';
 import { aiBestPlacement, aiBestRoad, aiChooseRobber, aiDecideBuild, aiEvalTradeOffer, aiGenerateOffer } from '../ai/ai';
+import { pillageAmount, resolveCombat } from '../game/combat';
 import { clearSave, loadGame, saveGame } from './persistence';
 import {
   Building, GameState, LogCategory, LogEntry, Player, ResourceCounts, ResourceType, Road, TradeOffer
@@ -555,7 +556,6 @@ export const useGameStore = create<GameStore>((set, get) => ({
     );
     if (!targetBuilding) return;
 
-    const { resolveCombat, pillageAmount } = require('../game/combat');
     const result = resolveCombat(attacker, gs.players[targetBuilding.playerId], targetBuilding, gs.roads, gs.board);
 
     let newBuildings = [...gs.buildings];
