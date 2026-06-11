@@ -55,7 +55,7 @@ ham_haber (RSS/API)
 | 3 | Ingestion: `market_fetcher.py` (yfinance + FRED + EVDS + CoinGecko) | ⬜ Yapılmadı | — |
 | 4 | Processing: `deduplicator.py` + `clusterer.py` + `scorer.py` | ⬜ Yapılmadı | — |
 | 5 | Intelligence: `llm_client.py` + `research_agent.py` | ✅ Bitti | `3bf7c33` |
-| 6 | Intelligence: `analyst_agent.py` (BIST derinleme analizi) | ⬜ Yapılmadı | — |
+| 6 | Intelligence: `analyst_agent.py` (BIST derinleme analizi) | ✅ Bitti | `—` |
 | 7 | Content: `narrative_writer.py` + `compliance_checker.py` | ⬜ Yapılmadı | — |
 | 8 | Content: platform formatlama (YouTube/TikTok/X şablonları) | ⬜ Yapılmadı | — |
 | 9 | Production: `youtube_publisher.py` + `x_publisher.py` | ⬜ Yapılmadı | — |
@@ -65,21 +65,28 @@ ham_haber (RSS/API)
 | 13 | End-to-end test + CLI runner | ⬜ Yapılmadı | — |
 | 14 | Deployment config + cron setup + README | ⬜ Yapılmadı | — |
 
-**Bir sonraki adım → Gün 6:** `src/intelligence/analyst_agent.py`
+**Bir sonraki adım → Gün 7:** `src/content/narrative_writer.py` + `src/content/compliance_checker.py`
 
 ---
 
-## Gün 6 — Ne Yapılacak
+## Gün 7 — Ne Yapılacak
 
-`research_agent.py` genel sinyal üretir. `analyst_agent.py` her sinyal için
-**BIST'e özgü derin analiz** yapar:
+`analyst_agent.py` → `content` tablosuna "analyst_brief" yazar.
+`narrative_writer.py` ise `signals` tablosundan en yüksek sıralı sinyali alır
+ve üç farklı platform için içerik üretir:
 
-- `signals` tablosundaki `bist_impact_json`'u alır
-- Hedef sektör + hisse bazında **senaryo analizi** üretir (bull/base/bear)
-- `transmission_matrix.yaml`'ı ikinci kez kullanır: tetikleyici koşullar sayısal mi?
-- Çıktıyı `signals.bist_impact_json`'u güncellemek yerine ayrı bir
-  `content` satırı olarak "analyst_brief" platformuna yazar
-- Test: mock LLM + DB fixture ile en az 6 test
+- **YouTube** (`platform="youtube"`): ~1000 kelime, başlık + gövde + kapanış disclaimer
+- **TikTok** (`platform="tiktok_1"`..`tiktok_4`): ~100 kelime, dikkat çekici hook + özet
+- **X thread** (`platform="x_thread"`): tweetler dizisi (her biri ≤280 karakter)
+
+`compliance_checker.py`:
+- `config/banned_phrases.yaml`'ı regex ile tarar
+- `banned_patterns` eşleşirse `compliance_passed=0`, pipeline durur
+- `warning_patterns` eşleşirse `compliance_warnings` dolar ama içerik geçer
+- `required_endings` yoksa otomatik disclaimer ekler
+- Sadece `compliance_passed=1` olan satır `content` tablosuna yazılabilir
+
+Test: mock LLM + DB fixture + compliance senaryoları (yasak kelime, uyarı, eksik disclaimer)
 
 ---
 
@@ -126,7 +133,8 @@ fin-media-network/
 │   │                              #   signals, content, performance, prompt_versions, llm_calls
 │   ├── intelligence/
 │   │   ├── llm_client.py          # LLMClient, BudgetExceeded, LLMResponse
-│   │   └── research_agent.py      # ResearchAgent.run(date) → signal_ids[]
+│   │   ├── research_agent.py      # ResearchAgent.run(date) → signal_ids[]
+│   │   └── analyst_agent.py       # AnalystAgent.run(date) → content_ids[] (analyst_brief)
 │   ├── ingestion/                 # ⬜ rss_fetcher.py, market_fetcher.py
 │   ├── processing/                # ⬜ deduplicator.py, clusterer.py, scorer.py
 │   ├── content/                   # ⬜ narrative_writer.py, compliance_checker.py
@@ -136,7 +144,8 @@ fin-media-network/
 └── tests/
     ├── test_database.py           # ✅ 7 test
     ├── test_llm_client.py         # ✅ 8 test
-    └── test_research_agent.py     # ✅ 15 test
+    ├── test_research_agent.py     # ✅ 15 test
+    └── test_analyst_agent.py      # ✅ 13 test
 ```
 
 ---
