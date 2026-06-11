@@ -1,0 +1,14 @@
+{
+  "data": {
+    "market_cap_percentage": {
+      "btc": 54.32,
+      "eth": 17.21
+    },
+    "total_market_cap": {
+      "usd": 2450987654321.0
+    },
+    "total_volume": {
+      "usd": 98765432101.0
+    }
+  }
+}

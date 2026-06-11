@@ -1,0 +1,11 @@
+{
+  "ticker": "XU100.IS",
+  "date": "2026-06-11",
+  "open": 9450.5,
+  "high": 9612.3,
+  "low": 9420.0,
+  "close": 9580.1,
+  "volume": 14234567890.0,
+  "change_pct": 0.84,
+  "source": "yfinance"
+}
