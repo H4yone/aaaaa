@@ -1,0 +1,36 @@
+{
+  "entries": [
+    {
+      "link": "https://finance.yahoo.com/news/fed-rate-decision-20260611",
+      "title": "Fed interest rate decision rocks global markets",
+      "summary": "The Federal Reserve kept rates unchanged but signaled hawkish stance for longer.",
+      "published": "Thu, 11 Jun 2026 05:30:00 GMT",
+      "published_parsed": [2026, 6, 11, 5, 30, 0, 3, 162, 0],
+      "source": {"title": "Reuters"},
+      "id": "https://finance.yahoo.com/news/fed-rate-decision-20260611"
+    },
+    {
+      "link": "https://finance.yahoo.com/news/nasdaq-rally-20260611",
+      "title": "Nasdaq surges 2% on strong NVDA earnings beat",
+      "summary": "NVIDIA posted record quarterly revenue, lifting tech stocks across the board.",
+      "published": "Thu, 11 Jun 2026 04:00:00 GMT",
+      "published_parsed": [2026, 6, 11, 4, 0, 0, 3, 162, 0],
+      "source": {"title": "CNBC"},
+      "id": "https://finance.yahoo.com/news/nasdaq-rally-20260611"
+    },
+    {
+      "link": "https://finance.yahoo.com/news/bist100-20260611",
+      "title": "Borsa İstanbul BIST 100 endeksi güçlü açılış yaptı",
+      "summary": "XU100 endeksi Garanti ve Akbank öncülüğünde yükseldi.",
+      "published": "Thu, 11 Jun 2026 06:00:00 GMT",
+      "published_parsed": [2026, 6, 11, 6, 0, 0, 3, 162, 0],
+      "source": {"title": "Haberturk"},
+      "id": "https://finance.yahoo.com/news/bist100-20260611"
+    }
+  ],
+  "bozo": false,
+  "feed": {
+    "title": "Yahoo Finance",
+    "link": "https://finance.yahoo.com"
+  }
+}

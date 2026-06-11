@@ -1,0 +1,25 @@
+{
+  "entries": [
+    {
+      "link": "https://www.kap.org.tr/tr/Bildirim/1234567",
+      "title": "GARAN - Garanti BBVA - Özel Durum Açıklaması",
+      "summary": "Garanti BBVA A.Ş. Yönetim Kurulu, temettü dağıtım kararı aldı.",
+      "published": "Thu, 11 Jun 2026 07:00:00 GMT",
+      "published_parsed": [2026, 6, 11, 7, 0, 0, 3, 162, 0],
+      "id": "https://www.kap.org.tr/tr/Bildirim/1234567"
+    },
+    {
+      "link": "https://www.kap.org.tr/tr/Bildirim/1234568",
+      "title": "THYAO - Türk Hava Yolları - Finansal Tablolar",
+      "summary": "THY 2026 Q1 finansal tabloları KAP'a iletildi. Net kâr beklentilerin üzerinde.",
+      "published": "Thu, 11 Jun 2026 07:15:00 GMT",
+      "published_parsed": [2026, 6, 11, 7, 15, 0, 3, 162, 0],
+      "id": "https://www.kap.org.tr/tr/Bildirim/1234568"
+    }
+  ],
+  "bozo": false,
+  "feed": {
+    "title": "KAP Bildiriler",
+    "link": "https://www.kap.org.tr"
+  }
+}
