@@ -1,0 +1,60 @@
+# Haber kaynağı güvenilirlik ağırlıkları (0.0 – 1.0)
+# Credibility scoring'de source_weight faktörü olarak kullanılır
+
+tier_elite:
+  weight: 1.0
+  sources:
+    - "kap.org.tr"
+    - "reuters.com"
+    - "bloomberg.com"
+    - "ft.com"
+    - "wsj.com"
+    - "federalreserve.gov"
+    - "tcmb.gov.tr"
+    - "spk.gov.tr"
+
+tier_high:
+  weight: 0.9
+  sources:
+    - "cnbc.com"
+    - "marketwatch.com"
+    - "seekingalpha.com"
+    - "investing.com"
+    - "hurriyet.com.tr"
+    - "milliyet.com.tr"
+    - "sabah.com.tr"
+
+tier_medium:
+  weight: 0.8
+  sources:
+    - "finance.yahoo.com"
+    - "bbc.com"
+    - "businessinsider.com"
+    - "thestreet.com"
+    - "haberturk.com"
+    - "ekonomim.com"
+    - "dunya.com"
+
+tier_low:
+  weight: 0.5
+  sources:
+    - "reddit.com"
+    - "twitter.com"
+    - "x.com"
+
+tier_unknown:
+  weight: 0.4
+  description: "Google News veya bilinmeyen kaynak"
+
+# Volatility impact kategorileri (impact_weight faktörü)
+volatility_categories:
+  faiz_kararı: 1.0        # Merkez bankası faiz kararları
+  earnings_sürpriz: 0.9   # Şirket kazanç açıklamaları
+  jeopolitik: 0.8         # Savaş, yaptırım, kriz
+  makro_veri: 0.8         # CPI, GDP, işsizlik
+  kap_bildirimi: 0.9      # KAP özel durum açıklamaları
+  analist_notu: 0.5       # Analist hedef fiyat revizyonu
+  ipo_halka_arz: 0.6      # IPO haberleri
+  merger_acquisition: 0.7 # Satın alma/birleşme
+  genel_haber: 0.2        # Genel piyasa yorumu
+  opsiyon_vade: 0.4       # Opsiyon vade sonu

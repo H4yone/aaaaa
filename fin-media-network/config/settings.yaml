@@ -1,0 +1,128 @@
+# Ana uygulama ayarları
+
+pipeline:
+  timezone: "Europe/Istanbul"
+  daily_run_hour: 6
+  evening_run_hour: 18
+  evening_run_minute: 15
+  metrics_run_hour: 23
+
+scoring:
+  tier1_threshold: 70
+  tier2_min: 40
+  tier2_max: 70
+
+deduplication:
+  url_hash: true
+  fuzzy_threshold: 90      # rapidfuzz benzerlik eşiği (0-100)
+  embedding_cosine: 0.85   # cosine benzerlik eşiği
+
+content:
+  youtube_min_words: 900
+  youtube_max_words: 1100
+  tiktok_min_words: 80
+  tiktok_max_words: 130
+  daily_tiktok_count: 4
+
+llm:
+  model: "claude-haiku-4-5-20251001"
+  max_tokens: 4096
+  temperature: 0.3
+  daily_token_budget: 30000
+  monthly_token_budget: 900000
+
+tickers:
+  bist:
+    indices:
+      - "XU100.IS"    # BIST 100
+      - "XU030.IS"    # BIST 30
+    stocks:
+      - "GARAN.IS"    # Garanti BBVA
+      - "AKBNK.IS"    # Akbank
+      - "YKBNK.IS"    # Yapı Kredi
+      - "THYAO.IS"    # THY
+      - "PGSUS.IS"    # Pegasus
+      - "TUPRS.IS"    # Tüpraş
+      - "ASELS.IS"    # Aselsan
+      - "KCHOL.IS"    # Koç Holding
+      - "SAHOL.IS"    # Sabancı Holding
+      - "SISE.IS"     # Şişecam
+  global:
+    indices:
+      - "^GSPC"       # S&P 500
+      - "^NDX"        # Nasdaq 100
+      - "^DJI"        # Dow Jones
+      - "^VIX"        # VIX
+    fx:
+      - "USDTRY=X"    # USD/TRY
+      - "EURTRY=X"    # EUR/TRY
+      - "DX-Y.NYB"    # DXY
+    bonds:
+      - "^TNX"        # US 10Y yield
+    commodities:
+      - "CL=F"        # WTI Crude Oil
+      - "GC=F"        # Gold
+    tech:
+      - "NVDA"
+      - "AAPL"
+      - "MSFT"
+      - "META"
+      - "GOOGL"
+
+crypto:
+  coins:
+    - "bitcoin"
+    - "ethereum"
+  vs_currency: "usd"
+
+rss_feeds:
+  google_news:
+    - url: "https://news.google.com/rss/search?q=BIST+borsa&hl=tr&gl=TR&ceid=TR:tr"
+      name: "google_bist_tr"
+      weight: 0.6
+    - url: "https://news.google.com/rss/search?q=borsa+istanbul&hl=tr&gl=TR&ceid=TR:tr"
+      name: "google_bist_istanbul"
+      weight: 0.6
+    - url: "https://news.google.com/rss/search?q=Fed+TCMB+faiz&hl=tr&gl=TR&ceid=TR:tr"
+      name: "google_fed_tcmb"
+      weight: 0.7
+    - url: "https://news.google.com/rss/search?q=Federal+Reserve+interest+rate&hl=en&gl=US&ceid=US:en"
+      name: "google_fed_en"
+      weight: 0.7
+  yahoo_finance:
+    - url: "https://finance.yahoo.com/rss/topstories"
+      name: "yahoo_topstories"
+      weight: 0.8
+    - url: "https://finance.yahoo.com/rss/2.0/headline?s=AAPL&region=US&lang=en-US"
+      name: "yahoo_aapl"
+      weight: 0.7
+  cnbc:
+    - url: "https://www.cnbc.com/id/100003114/device/rss/rss.html"
+      name: "cnbc_top"
+      weight: 0.9
+    - url: "https://www.cnbc.com/id/20910258/device/rss/rss.html"
+      name: "cnbc_markets"
+      weight: 0.9
+  investing:
+    - url: "https://www.investing.com/rss/news.rss"
+      name: "investing_general"
+      weight: 0.8
+  kap:
+    - url: "https://www.kap.org.tr/tr/rss"
+      name: "kap_bildirimler"
+      weight: 1.0
+
+fred:
+  series:
+    FEDFUNDS: "Fed Funds Rate"
+    CPIAUCSL: "US CPI (All Urban)"
+    DGS10: "10-Year Treasury Yield"
+    DGS2: "2-Year Treasury Yield"
+    DTWEXBGS: "USD Trade Weighted Index"
+
+evds:
+  series:
+    - series_id: "TP.TG2.Y01"
+      name: "TCMB Politika Faizi"
+    - series_id: "TP.AB.B1"
+      name: "TCMB Rezervler"

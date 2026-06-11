@@ -1,0 +1,17 @@
+.env
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+dist/
+build/
+output/
+*.db
+*.db-wal
+*.db-shm
+*.log
+.pytest_cache/
+.coverage
+htmlcov/
+token.json
+credentials.json
