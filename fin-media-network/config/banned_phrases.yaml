@@ -1,0 +1,68 @@
+# SPK Uyum Listesi — Yasaklı Kalıplar
+# compliance.py bu listeyi regex ile her içeriği taramak için kullanır
+# "al/sat/hedef fiyat" dili SPK lisansı gerektirir
+
+mandatory_disclaimer: "Bu içerik yatırım tavsiyesi değildir."
+
+# Kesin yasak (pipeline'ı durdurur, içerik yayınlanamaz)
+banned_patterns:
+  # Açık tavsiye dili
+  - pattern: "almalısınız"
+    reason: "Açık alım tavsiyesi"
+  - pattern: "satmalısınız"
+    reason: "Açık satış tavsiyesi"
+  - pattern: "alın"
+    reason: "Emir kipi alım tavsiyesi"
+    context_required: true   # "alın" tek başına değil, bağlamda değerlendir
+  - pattern: "satın"
+    reason: "Emir kipi satış tavsiyesi"
+    context_required: true
+  - pattern: "kesinlikle yükselir"
+    reason: "Kesin fiyat yönü tahmini"
+  - pattern: "kesinlikle düşer"
+    reason: "Kesin fiyat yönü tahmini"
+  - pattern: "garantili kazanç"
+    reason: "Garanti vadeden dil"
+  - pattern: "risksiz yatırım"
+    reason: "Yanıltıcı risk tanımı"
+
+  # Hedef fiyat dili
+  - pattern: "hedef fiyat"
+    reason: "Hedef fiyat lisans gerektirir"
+  - pattern: "hedef fiyatı"
+    reason: "Hedef fiyat lisans gerektirir"
+  - pattern: "fiyat hedefi"
+    reason: "Hedef fiyat lisans gerektirir"
+  - pattern: "\\d+\\s*TL'ye ulaşır"
+    reason: "Açık fiyat hedefi"
+  - pattern: "\\d+\\s*TL seviyesini görür"
+    reason: "Açık fiyat hedefi"
+  - pattern: "\\d+\\s*dolar hedef"
+    reason: "Açık fiyat hedefi"
+
+  # Kesin getiri vaadi
+  - pattern: "\\d+\\s*%\\s*kazanç"
+    reason: "Kesin getiri vaadi"
+  - pattern: "\\d+\\s*%\\s*yükseliş garantisi"
+    reason: "Getiri garantisi"
+  - pattern: "kaçırılmayacak fırsat"
+    reason: "Baskı yaratan pazarlama dili"
+
+# Uyarı gerektiren (içerik geçer ama loglarda uyarı çıkar)
+warning_patterns:
+  - pattern: "yükselebilir"
+    reason: "Yön tahmini — bağlam kontrolü önerilir"
+  - pattern: "düşebilir"
+    reason: "Yön tahmini — bağlam kontrolü önerilir"
+  - pattern: "al fırsatı"
+    reason: "Örtük alım tavsiyesi"
+  - pattern: "portföyünüze ekleyin"
+    reason: "Örtük tavsiye"
+  - pattern: "güvenli liman"
+    reason: "Görece risk değerlendirmesi"
+
+# Zorunlu kapanış kontrolleri
+required_endings:
+  - "yatırım tavsiyesi değildir"
+  - "yatırım danışmanlığı değildir"
+  - "bilgi amaçlıdır"

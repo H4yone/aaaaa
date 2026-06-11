@@ -1,0 +1,204 @@
+# Global → BIST Transmission Matrix
+# Her kural: tetikleyici, kanal, bist_etkisi, hedef_sektorler
+# Bu dosya kodda değil, veri olarak işlenir — kural değişikliği kod gerektirmez.
+
+rules:
+  - id: "fed_hawkish"
+    trigger: "Fed hawkish / 10Y yukarı"
+    keywords: ["hawkish", "rate hike", "faiz artışı", "tighten", "10Y", "treasury yield"]
+    tickers_watch: ["^TNX", "DX-Y.NYB"]
+    trigger_condition:
+      dgs10_change_pct: ">0.05"   # 10Y yield +5 bps
+    channel: "DXY yukarı → EM risk-off → TRY baskı"
+    bist_impact: "negatif"
+    impact_magnitude: "yüksek"
+    time_horizon: "ayni_gun"
+    target_sectors:
+      - sector: "genel_endeks"
+        stocks: ["XU100.IS", "XU030.IS"]
+        direction: "aşağı"
+      - sector: "yüksek_borçlu_sanayi"
+        stocks: ["KCHOL.IS", "SAHOL.IS"]
+        direction: "aşağı"
+    narrative_hint: "Yüksek faiz ortamında EM'den fon çıkışı BIST'i baskılar; TRY zayıflar."
+
+  - id: "fed_dovish"
+    trigger: "Fed gevşeme / faiz indirimi"
+    keywords: ["dovish", "rate cut", "faiz indirimi", "pivot", "easing"]
+    tickers_watch: ["^TNX", "DX-Y.NYB"]
+    trigger_condition:
+      fedfunds_change_pct: "<-0.10"
+    channel: "EM'e fon akışı, risk-on"
+    bist_impact: "pozitif"
+    impact_magnitude: "yüksek"
+    time_horizon: "ayni_gun"
+    target_sectors:
+      - sector: "bankacılık"
+        stocks: ["GARAN.IS", "AKBNK.IS", "YKBNK.IS"]
+        direction: "yukarı"
+      - sector: "genel_endeks"
+        stocks: ["XU030.IS"]
+        direction: "yukarı"
+    narrative_hint: "Fed gevşemesi EM risk iştahını açar; bankalar lider olur."
+
+  - id: "nasdaq_rally"
+    trigger: "Nasdaq ralli / risk-on"
+    keywords: ["nasdaq", "rally", "risk-on", "tech", "S&P", "bull"]
+    tickers_watch: ["^NDX", "^GSPC", "^VIX"]
+    trigger_condition:
+      ndx_change_pct: ">1.5"
+      vix_level: "<18"
+    channel: "Global risk iştahı → EM pozitif"
+    bist_impact: "pozitif"
+    impact_magnitude: "orta"
+    time_horizon: "ayni_gun"
+    target_sectors:
+      - sector: "bankacılık"
+        stocks: ["GARAN.IS", "AKBNK.IS"]
+        direction: "yukarı"
+      - sector: "genel_endeks"
+        stocks: ["XU030.IS"]
+        direction: "yukarı"
+    narrative_hint: "Global risk-on ortamında BIST'e sıcak para girişi güçlenir."
+
+  - id: "oil_up"
+    trigger: "Petrol yukarı"
+    keywords: ["crude oil", "WTI", "brent", "petrol", "oil price", "OPEC"]
+    tickers_watch: ["CL=F"]
+    trigger_condition:
+      cl_change_pct: ">2.0"
+    channel: "Girdi maliyeti + cari açık baskısı"
+    bist_impact: "karışık"
+    impact_magnitude: "orta"
+    time_horizon: "hafta"
+    target_sectors:
+      - sector: "rafineri"
+        stocks: ["TUPRS.IS"]
+        direction: "yukarı"
+      - sector: "havacılık"
+        stocks: ["THYAO.IS", "PGSUS.IS"]
+        direction: "aşağı"
+    narrative_hint: "Petrol artışı TÜPRAŞ'ı olumlu, havacılığı olumsuz etkiler; cari açık endişesi TRY'yi baskılar."
+
+  - id: "oil_down"
+    trigger: "Petrol aşağı"
+    keywords: ["crude oil", "WTI", "brent", "petrol düşüyor", "oil drop"]
+    tickers_watch: ["CL=F"]
+    trigger_condition:
+      cl_change_pct: "<-2.0"
+    channel: "Cari açık rahatlar"
+    bist_impact: "pozitif"
+    impact_magnitude: "orta"
+    time_horizon: "hafta"
+    target_sectors:
+      - sector: "havacılık"
+        stocks: ["THYAO.IS", "PGSUS.IS"]
+        direction: "yukarı"
+      - sector: "enerji"
+        stocks: ["TUPRS.IS"]
+        direction: "aşağı"
+    narrative_hint: "Ucuzlayan petrol Türkiye'nin cari açığını hafifletir; havacılık sektörü nefes alır."
+
+  - id: "dxy_up"
+    trigger: "DXY yukarı (dolar güçleniyor)"
+    keywords: ["DXY", "dollar index", "dollar strength", "USD rally"]
+    tickers_watch: ["DX-Y.NYB", "USDTRY=X"]
+    trigger_condition:
+      dxy_change_pct: ">0.5"
+    channel: "USDTRY baskı → enflasyon beklentisi"
+    bist_impact: "negatif"
+    impact_magnitude: "orta"
+    time_horizon: "ayni_gun"
+    target_sectors:
+      - sector: "ithalata_bağımlı"
+        stocks: ["THYAO.IS", "PGSUS.IS", "SISE.IS"]
+        direction: "aşağı"
+    narrative_hint: "Güçlü dolar TRY'yi aşındırır, ithal girdi maliyetlerini artırır."
+
+  - id: "try_weaken"
+    trigger: "TRY zayıflama"
+    keywords: ["USDTRY", "TRY", "lira", "kur", "döviz", "depreciation"]
+    tickers_watch: ["USDTRY=X", "EURTRY=X"]
+    trigger_condition:
+      usdtry_change_pct: ">1.5"
+    channel: "İhracatçı marj avantajı"
+    bist_impact: "karışık"
+    impact_magnitude: "orta"
+    time_horizon: "hafta"
+    target_sectors:
+      - sector: "ihracatçı_sanayi"
+        stocks: ["KCHOL.IS", "SAHOL.IS"]
+        direction: "yukarı"
+      - sector: "iç_pazar"
+        stocks: ["GARAN.IS", "AKBNK.IS"]
+        direction: "aşağı"
+    narrative_hint: "TRY zayıflaması ihracatçı sanayi marjlarını genişletir ama bankacılığa kredi maliyeti olarak yansır."
+
+  - id: "tcmb_hike"
+    trigger: "TCMB faiz artışı"
+    keywords: ["TCMB", "para politikası", "faiz kararı", "politika faizi", "MB toplantısı"]
+    tickers_watch: ["USDTRY=X"]
+    trigger_condition:
+      tcmb_rate_change_bps: ">0"
+    channel: "TRY destek, kredi maliyeti yukarı"
+    bist_impact: "karışık"
+    impact_magnitude: "yüksek"
+    time_horizon: "ayni_gun"
+    target_sectors:
+      - sector: "bankacılık_kısa_vade"
+        stocks: ["GARAN.IS", "AKBNK.IS", "YKBNK.IS"]
+        direction: "yukarı"
+      - sector: "sanayi_orta_vade"
+        stocks: ["KCHOL.IS", "SAHOL.IS"]
+        direction: "aşağı"
+    narrative_hint: "Faiz artışı TRY'yi destekler ve bankacılık spread'ini genişletir; ancak şirket borç maliyeti artar."
+
+  - id: "megacap_earnings_beat"
+    trigger: "Mega-cap kazanç sürprizi"
+    keywords: ["earnings beat", "EPS", "revenue beat", "NVDA", "AAPL", "MSFT", "META"]
+    tickers_watch: ["^NDX", "NVDA", "AAPL"]
+    trigger_condition:
+      ndx_change_pct: ">1.0"
+    channel: "Risk-on sentiment"
+    bist_impact: "hafif_pozitif"
+    impact_magnitude: "düşük"
+    time_horizon: "ayni_gun"
+    target_sectors:
+      - sector: "genel_endeks"
+        stocks: ["XU030.IS"]
+        direction: "hafif_yukarı"
+    narrative_hint: "Büyük teknoloji şirketlerinde güçlü kazanç küresel risk iştahını artırır, BIST'e dolaylı destek gelir."
+
+  - id: "btc_rally"
+    trigger: "Bitcoin ralli"
+    keywords: ["bitcoin", "BTC", "crypto", "kripto", "risk appetite"]
+    tickers_watch: ["bitcoin"]
+    trigger_condition:
+      btc_change_pct: ">5.0"
+    channel: "Risk iştahı göstergesi"
+    bist_impact: "korelasyon_sinyali"
+    impact_magnitude: "düşük"
+    time_horizon: "ayni_gun"
+    target_sectors:
+      - sector: "genel_risk_on"
+        stocks: ["XU030.IS"]
+        direction: "hafif_yukarı"
+    narrative_hint: "BTC rallisi genel risk iştahının teyididir; BIST'e doğrudan değil sentiment üzerinden yansır."
+
+  - id: "geopolitical_risk"
+    trigger: "Jeopolitik gerilim"
+    keywords: ["jeopolitik", "geopolitical", "savaş", "war", "sanctions", "yaptırım", "conflict", "NATO"]
+    tickers_watch: []
+    trigger_condition: {}
+    channel: "Risk primi yukarı"
+    bist_impact: "negatif"
+    impact_magnitude: "yüksek"
+    time_horizon: "hafta"
+    target_sectors:
+      - sector: "genel_endeks"
+        stocks: ["XU100.IS"]
+        direction: "aşağı"
+      - sector: "savunma"
+        stocks: ["ASELS.IS"]
+        direction: "yukarı"
+    narrative_hint: "Bölgesel jeopolitik risk Türkiye'nin CDS primini artırır, genel endeks baskı altına girer; savunma sanayi ayrışır."
