@@ -1,5 +1,5 @@
 """
-Anthropic Claude istemcisi — token bütçesi, maliyet logu, yeniden deneme.
+OpenAI istemcisi — token bütçesi, maliyet logu, yeniden deneme.
 """
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
 
-import anthropic
+import openai
 import yaml
 from tenacity import (
     retry,
@@ -26,9 +26,11 @@ _CONFIG_PATH = Path(__file__).parent.parent.parent / "config" / "settings.yaml"
 
 # Fiyatlar: USD / 1 milyon token
 _PRICING: dict[str, dict[str, float]] = {
-    "claude-haiku-4-5-20251001": {"input": 0.80, "output": 4.00},
-    "claude-sonnet-4-6":         {"input": 3.00, "output": 15.00},
-    "claude-opus-4-8":           {"input": 15.00, "output": 75.00},
+    "gpt-4o-mini":       {"input": 0.15,  "output": 0.60},
+    "gpt-4o":            {"input": 2.50,  "output": 10.00},
+    "gpt-4o-2024-11-20": {"input": 2.50,  "output": 10.00},
+    "o1-mini":           {"input": 3.00,  "output": 12.00},
+    "o1":                {"input": 15.00, "output": 60.00},
 }
 
 
@@ -48,7 +50,7 @@ class LLMResponse:
 
 class LLMClient:
     """
-    Anthropic SDK wrapper.
+    OpenAI SDK wrapper.
 
     - settings.yaml'dan model / bütçe okur
     - Her çağrıyı llm_calls tablosuna loglar
@@ -66,13 +68,13 @@ class LLMClient:
         self._daily_token_budget: int = llm_cfg["daily_token_budget"]
         self._monthly_token_budget: int = llm_cfg["monthly_token_budget"]
 
-        self._client = anthropic.Anthropic()  # ANTHROPIC_API_KEY env'den okunur
+        self._client = openai.OpenAI()  # OPENAI_API_KEY env'den okunur
 
     # ── Bütçe yönetimi ────────────────────────────────────────────────────────
 
     def _token_budget_to_usd(self, tokens: int) -> float:
         """Token sayısını tahmini USD maliyete çevirir (input fiyatı baz alır)."""
-        price = _PRICING.get(self.model, _PRICING["claude-haiku-4-5-20251001"])
+        price = _PRICING.get(self.model, _PRICING["gpt-4o-mini"])
         return tokens / 1_000_000 * price["input"]
 
     def _check_budget(self) -> None:
@@ -98,7 +100,7 @@ class LLMClient:
     # ── Maliyet hesabı ────────────────────────────────────────────────────────
 
     def compute_cost(self, input_tokens: int, output_tokens: int) -> float:
-        price = _PRICING.get(self.model, _PRICING["claude-haiku-4-5-20251001"])
+        price = _PRICING.get(self.model, _PRICING["gpt-4o-mini"])
         return (input_tokens * price["input"] + output_tokens * price["output"]) / 1_000_000
 
     # ── API çağrısı ───────────────────────────────────────────────────────────
@@ -106,7 +108,7 @@ class LLMClient:
     @retry(
         stop=stop_after_attempt(3),
         wait=wait_exponential(multiplier=1, min=2, max=30),
-        retry=retry_if_exception_type(anthropic.RateLimitError),
+        retry=retry_if_exception_type(openai.RateLimitError),
         reraise=True,
     )
     def call(
@@ -116,14 +118,19 @@ class LLMClient:
         system: str | None = None,
     ) -> LLMResponse:
         """
-        Claude'a mesaj gönder, token kullanımını logla.
+        OpenAI'ya mesaj gönder, token kullanımını logla.
 
         Args:
             agent: "research" | "analyst" | "narrative" | "content" | "feedback"
             messages: [{"role": "user"/"assistant", "content": "..."}]
-            system: Sistem istemi (opsiyonel)
+            system: Sistem istemi (opsiyonel) — messages listesinin başına eklenir
         """
         self._check_budget()
+
+        full_messages: list[dict] = []
+        if system:
+            full_messages.append({"role": "system", "content": system})
+        full_messages.extend(messages)
 
         start = time.monotonic()
         input_tokens = output_tokens = 0
@@ -132,19 +139,15 @@ class LLMClient:
         error_message: str | None = None
 
         try:
-            kwargs: dict = {
-                "model": self.model,
-                "max_tokens": self.max_tokens,
-                "temperature": self.temperature,
-                "messages": messages,
-            }
-            if system:
-                kwargs["system"] = system
-
-            resp = self._client.messages.create(**kwargs)
-            input_tokens = resp.usage.input_tokens
-            output_tokens = resp.usage.output_tokens
-            content = resp.content[0].text
+            resp = self._client.chat.completions.create(
+                model=self.model,
+                max_tokens=self.max_tokens,
+                temperature=self.temperature,
+                messages=full_messages,
+            )
+            input_tokens = resp.usage.prompt_tokens
+            output_tokens = resp.usage.completion_tokens
+            content = resp.choices[0].message.content
 
         except Exception as exc:
             success = False
