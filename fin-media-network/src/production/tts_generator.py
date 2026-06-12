@@ -1,11 +1,16 @@
 """
-ElevenLabs TTS Jeneratörü — içerik metinlerini MP3'e dönüştürür.
+ElevenLabs TTS Jeneratörü — diyalog formatındaki içerikleri MP3'e dönüştürür.
 
 Env:
   ELEVENLABS_API_KEY
-  ELEVENLABS_VOICE_ID_DENIZ  (dişi ses — YouTube)
-  ELEVENLABS_VOICE_ID_MERT   (erkek ses — TikTok)
+  ELEVENLABS_VOICE_ID_DENIZ  (Sunucu sesi)
+  ELEVENLABS_VOICE_ID_MERT   (Analist sesi)
   OUTPUT_DIR                 (varsayılan: "output")
+
+Diyalog formatı:
+  [SUNUCU] metin → Sunucu sesiyle üretilir
+  [ANALİST] metin → Analist sesiyle üretilir
+  Tüm segmentler birleştirilerek tek MP3 çıkar.
 
 Çıktı dosyası konvansiyonu:
   {OUTPUT_DIR}/{YYYY-MM-DD}/{platform}_{content_id}.mp3
@@ -14,6 +19,7 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
@@ -22,9 +28,25 @@ _MODEL_ID = "eleven_multilingual_v2"
 _OUTPUT_FORMAT = "mp3_44100_128"
 
 
+def _parse_dialogue(text: str) -> list[tuple[str, str]]:
+    """[SUNUCU] ve [ANALİST] etiketlerini parse eder, (konuşmacı, metin) listesi döner."""
+    parts = re.split(r"\[(SUNUCU|ANAL[İI]ST)\]", text)
+    segments: list[tuple[str, str]] = []
+    i = 1
+    while i < len(parts) - 1:
+        speaker = parts[i].strip()
+        if re.match(r"ANAL[İI]ST", speaker):
+            speaker = "ANALİST"
+        content = parts[i + 1].strip()
+        if content:
+            segments.append((speaker, content))
+        i += 2
+    return segments
+
+
 class TTSGenerator:
     """
-    ElevenLabs text-to-speech wrapper.
+    ElevenLabs text-to-speech wrapper — diyalog desteğiyle.
 
     Testlerde `client` parametresine mock geçilir.
     """
@@ -38,7 +60,13 @@ class TTSGenerator:
             self._client = ElevenLabs(api_key=os.getenv("ELEVENLABS_API_KEY", ""))
         return self._client
 
-    # ── Ses üretimi ───────────────────────────────────────────────────────────
+    def _voice_for(self, speaker: str) -> str:
+        """Konuşmacıya göre ses ID döner."""
+        if speaker == "ANALİST":
+            return os.getenv("ELEVENLABS_VOICE_ID_MERT", "")
+        return os.getenv("ELEVENLABS_VOICE_ID_DENIZ", "")
+
+    # ── Tekli ses üretimi ─────────────────────────────────────────────────────
 
     def generate(
         self,
@@ -47,15 +75,9 @@ class TTSGenerator:
         voice_id: str | None = None,
     ) -> Path:
         """
-        Metni sese dönüştürür ve MP3 olarak kaydeder.
+        Metni tek sesle MP3'e dönüştürür.
 
-        Args:
-            text:        Seslendirilecek metin
-            output_path: Kaydedilecek dosya yolu (.mp3)
-            voice_id:    None → ELEVENLABS_VOICE_ID_DENIZ env'den okunur
-
-        Returns:
-            Kaydedilen dosyanın yolu
+        voice_id None ise ELEVENLABS_VOICE_ID_DENIZ kullanılır.
         """
         if voice_id is None:
             voice_id = os.getenv("ELEVENLABS_VOICE_ID_DENIZ", "")
@@ -76,11 +98,47 @@ class TTSGenerator:
         logger.info("[TTS] %d karakter → %s", len(text), output_path)
         return output_path
 
+    # ── Diyalog ses üretimi ───────────────────────────────────────────────────
+
+    def generate_dialogue(self, text: str, output_path: Path) -> Path:
+        """
+        [SUNUCU]/[ANALİST] etiketli metni iki sesle üretip tek MP3'te birleştirir.
+
+        Etiket yoksa tek sesle (Sunucu) üretilir.
+        """
+        segments = _parse_dialogue(text)
+
+        if not segments:
+            return self.generate(text, output_path)
+
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+
+        all_audio = b""
+        for speaker, content in segments:
+            voice_id = self._voice_for(speaker)
+            if not voice_id:
+                logger.warning("[TTS] %s için ses ID tanımlı değil, atlanıyor", speaker)
+                continue
+            audio_stream = self._get_client().text_to_speech.convert(
+                voice_id=voice_id,
+                text=content,
+                model_id=_MODEL_ID,
+                output_format=_OUTPUT_FORMAT,
+            )
+            for chunk in audio_stream:
+                all_audio += chunk
+
+        with output_path.open("wb") as f:
+            f.write(all_audio)
+
+        logger.info("[TTS] Diyalog %d segment → %s", len(segments), output_path)
+        return output_path
+
     # ── Toplu üretim ──────────────────────────────────────────────────────────
 
     def run(self, run_date=None) -> list[Path]:
         """
-        Belirtilen tarih için sesi olmayan TikTok ve YouTube içeriklerini seslendirir.
+        Belirtilen tarih için sesi olmayan YouTube ve TikTok içeriklerini seslendirir.
 
         Returns:
             Oluşturulan MP3 dosyalarının listesi.
@@ -93,15 +151,6 @@ class TTSGenerator:
         date_str = run_date.isoformat()
         output_dir = Path(os.getenv("OUTPUT_DIR", "output"))
         db = get_db()
-
-        # YouTube → Deniz sesi, TikTok → Mert sesi
-        voice_map = {
-            "youtube":  os.getenv("ELEVENLABS_VOICE_ID_DENIZ", ""),
-            "tiktok_1": os.getenv("ELEVENLABS_VOICE_ID_MERT", ""),
-            "tiktok_2": os.getenv("ELEVENLABS_VOICE_ID_MERT", ""),
-            "tiktok_3": os.getenv("ELEVENLABS_VOICE_ID_MERT", ""),
-            "tiktok_4": os.getenv("ELEVENLABS_VOICE_ID_MERT", ""),
-        }
 
         rows = db.fetchall(
             """SELECT id, platform, body FROM content
@@ -117,13 +166,8 @@ class TTSGenerator:
                 logger.debug("[TTS] Zaten mevcut, atlanıyor: %s", mp3_path)
                 continue
 
-            voice_id = voice_map.get(row["platform"], "")
-            if not voice_id:
-                logger.warning("[TTS] Ses ID bulunamadı, platform: %s", row["platform"])
-                continue
-
             try:
-                path = self.generate(text=row["body"], output_path=mp3_path, voice_id=voice_id)
+                path = self.generate_dialogue(text=row["body"], output_path=mp3_path)
                 generated.append(path)
             except Exception as exc:
                 logger.error("[TTS] İçerik %d ses üretim hatası: %s", row["id"], exc)

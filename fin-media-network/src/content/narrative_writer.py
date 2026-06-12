@@ -33,7 +33,10 @@ logger = logging.getLogger(__name__)
 _CONFIG_PATH = Path(__file__).parent.parent.parent / "config" / "settings.yaml"
 
 _SYSTEM = """\
-Sen deneyimli bir Türk finansal içerik yazarısın.
+Sen iki sunuculu bir Türk finansal YouTube/TikTok kanalının senaryo yazarısın.
+- SUNUCU: Haberleri tanıtır, soruları yönlendirir, izleyiciyle bağ kurar.
+- ANALİST: Piyasa dinamiklerini, BIST etkilerini ve verileri derinlemesine açıklar.
+Her konuşma satırı [SUNUCU] veya [ANALİST] etiketiyle başlar.
 Türkçe yaz. Anlaşılır, bilgilendirici, tarafsız ol.
 Yatırım tavsiyesi verme — sadece analiz et ve bilgilendir.
 Çıktın her zaman istenen formatta olsun.\
@@ -42,7 +45,8 @@ Yatırım tavsiyesi verme — sadece analiz et ve bilgilendir.
 # ── Platform prompt'ları ──────────────────────────────────────────────────────
 
 _YT_PROMPT = """\
-Aşağıdaki finansal analizi YouTube videosu için yazılı senaryo olarak üret.
+Aşağıdaki finansal analizi YouTube videosu için SUNUCU ve ANALİST arasında \
+diyalog formatında senaryo olarak üret.
 
 ## Kaynak Sinyal
 Başlık      : {headline}
@@ -53,18 +57,28 @@ Genel yön   : {bias} (güven: {confidence:.0%})
 ## Senaryo Analizi
 {scenarios}
 
-## Hedef
-- Uzunluk: {min_words}–{max_words} kelime
-- Yapı: dikkat çekici açılış → ne oldu (2-3 paragraf) → BIST etkisi → \
-yatırımcının dikkat etmesi gerekenler → kapanış
-- Markdown kullanma, düz metin yaz
-- Sonda zorunlu disclaimer: "Bu içerik yatırım tavsiyesi değildir."\
+## Format Kuralları
+- Her satır [SUNUCU] veya [ANALİST] etiketiyle başlasın
+- SUNUCU: izleyiciyi selamlar, haberi tanıtır, sorular sorar, uğurlar
+- ANALİST: verileri, BIST etkilerini ve piyasa dinamiklerini açıklar
+- Toplam uzunluk: {min_words}–{max_words} kelime
+- Markdown kullanma, her satır etiketle başlasın
+- Son satırda zorunlu disclaimer: "Bu içerik yatırım tavsiyesi değildir."
+
+## Örnek Yapı
+[SUNUCU] Merhaba, bugün piyasalarda çok önemli gelişmeler var...
+[ANALİST] Evet, Fed'in açıklaması BIST üzerinde doğrudan etki yarattı...
+[SUNUCU] Bunu biraz daha açar mısın?
+[ANALİST] Tabii, şöyle düşünelim...
+[SUNUCU] Bu içerik yatırım tavsiyesi değildir.\
 """
 
 _TIKTOK_PROMPT = """\
-Aşağıdaki haberi 4 farklı TikTok videosu için {min_words}–{max_words} kelimelik scriptlere dönüştür.
-Her script: dikkat çekici hook (ilk 2 cümle) + ana bilgi + kapanış cümlesi.
-Her script farklı bir açıyı vurgulasın (örn. genel etki / bankacılık / döviz / fırsat-risk).
+Aşağıdaki haberi 4 farklı TikTok videosu için {min_words}–{max_words} kelimelik \
+SUNUCU–ANALİST diyalog scriptlerine dönüştür.
+Her script: dikkat çekici hook + ana bilgi + kapanış.
+Her script farklı bir açıyı vurgulasın (genel etki / bankacılık / döviz / fırsat-risk).
+Her konuşma satırı [SUNUCU] veya [ANALİST] etiketiyle başlasın.
 
 ## Kaynak
 {headline}
@@ -75,10 +89,10 @@ Her script farklı bir açıyı vurgulasın (örn. genel etki / bankacılık / d
 
 ## Çıktı — sadece aşağıdaki JSON'u döndür:
 {{
-  "tiktok_1": "<metin>",
-  "tiktok_2": "<metin>",
-  "tiktok_3": "<metin>",
-  "tiktok_4": "<metin>"
+  "tiktok_1": "[SUNUCU] ... [ANALİST] ...",
+  "tiktok_2": "[SUNUCU] ... [ANALİST] ...",
+  "tiktok_3": "[SUNUCU] ... [ANALİST] ...",
+  "tiktok_4": "[SUNUCU] ... [ANALİST] ..."
 }}\
 """
 
