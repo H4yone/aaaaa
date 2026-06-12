@@ -57,17 +57,36 @@ ham_haber (RSS/API)
 | 5 | Intelligence: `llm_client.py` + `research_agent.py` | ✅ Bitti | `3bf7c33` |
 | 6 | Intelligence: `analyst_agent.py` (BIST derinleme analizi) | ✅ Bitti | `c82c827` |
 | 7 | Content: `narrative_writer.py` + `compliance_checker.py` | ✅ Bitti | `a24d904` |
-| 8 | Content: platform formatlama (YouTube/TikTok/X şablonları) | ✅ Bitti | `—` |
-| 9 | Production: `youtube_publisher.py` + `x_publisher.py` | ⬜ Yapılmadı | — |
-| 10 | Production: TikTok + ElevenLabs TTS entegrasyonu | ⬜ Yapılmadı | — |
+| 8 | Content: platform formatlama (YouTube/TikTok/X şablonları) | ✅ Bitti | `3cf1370` |
+| 9 | Production: `youtube_publisher.py` + `x_publisher.py` | ✅ Bitti | `3cf1370` |
+| 10 | Production: TikTok + ElevenLabs TTS entegrasyonu | ✅ Bitti | `—` |
 | 11 | Pipeline: `orchestrator.py` (zamanlama + hata yönetimi) | ⬜ Yapılmadı | — |
 | 12 | Feedback: `metrics_fetcher.py` + `prompt_optimizer.py` | ⬜ Yapılmadı | — |
 | 13 | End-to-end test + CLI runner | ⬜ Yapılmadı | — |
 | 14 | Deployment config + cron setup + README | ⬜ Yapılmadı | — |
 
-**Bir sonraki adım → Gün 9:** `src/production/youtube_publisher.py` + `src/production/x_publisher.py`
+**Bir sonraki adım → Gün 11:** `src/pipeline/orchestrator.py`
 
-> ✅ Gün 8 kapsamındaki publisher'lar Gün 8 branch'inde teslim edildi.
+---
+
+## Gün 11 — Ne Yapılacak
+
+Tüm katmanları sırayla çalıştıran tam pipeline koordinatörü:
+
+```
+ResearchAgent → AnalystAgent → NarrativeWriter
+    → TTSGenerator → YouTubePublisher + XPublisher + TikTokPublisher
+```
+
+`orchestrator.py`:
+- `PipelineOrchestrator.run(date)` → her katmanı sırayla çağırır
+- Her adımın çıktısını loglar ve bir sonraki adıma geçer
+- Herhangi bir adım exception fırlatırsa loglanır, pipeline devam eder (non-fatal)
+- `BudgetExceeded` → pipeline o gün için durur, sonraki güne geçilir
+- `settings.yaml`'daki `daily_run_hour` / `evening_run_hour` zamanlamayı destekler
+- Çalıştırma sonucunu `PipelineResult` dataclass'ında döner (her adımın başarı/hata durumu)
+
+Test: her ajanın mock'u + sıralı çağrı doğrulaması + hata izolasyonu
 
 ---
 
@@ -123,7 +142,9 @@ fin-media-network/
 │   │   └── narrative_writer.py    # NarrativeWriter.run(date) → content_ids[] (youtube/tiktok/x_thread)
 │   ├── production/
 │   │   ├── youtube_publisher.py   # YouTubePublisher.run(date) → published_ids[]
-│   │   └── x_publisher.py        # XPublisher.run(date) → published_ids[]
+│   │   ├── x_publisher.py        # XPublisher.run(date) → published_ids[]
+│   │   ├── tiktok_publisher.py   # TikTokPublisher.run(date) → published_ids[]
+│   │   └── tts_generator.py      # TTSGenerator.run(date) → mp3_paths[]
 │   ├── pipeline/                  # ⬜ orchestrator.py
 │   └── feedback/                  # ⬜ metrics_fetcher.py, prompt_optimizer.py
 └── tests/
@@ -134,7 +155,9 @@ fin-media-network/
     ├── test_compliance_checker.py # ✅ 16 test
     ├── test_narrative_writer.py   # ✅ 7 test
     ├── test_youtube_publisher.py  # ✅ 9 test
-    └── test_x_publisher.py        # ✅ 12 test
+    ├── test_x_publisher.py        # ✅ 12 test
+    ├── test_tts_generator.py      # ✅ 10 test
+    └── test_tiktok_publisher.py   # ✅ 10 test
 ```
 
 ---
