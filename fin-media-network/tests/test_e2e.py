@@ -43,6 +43,11 @@ def cfg_file(tmp_path):
 
 def _make_orch(cfg_file: Path, **overrides) -> PipelineOrchestrator:
     defaults = {
+        "rss_fetcher":      MagicMock(**{"run.return_value": [1, 2, 3]}),
+        "market_fetcher":   MagicMock(**{"run.return_value": ["XU100.IS"]}),
+        "deduplicator":     MagicMock(**{"run.return_value": []}),
+        "clusterer":        MagicMock(**{"run.return_value": [10, 11]}),
+        "scorer":           MagicMock(**{"run.return_value": [10, 11]}),
         "research_agent":   MagicMock(**{"run.return_value": [1, 2]}),
         "analyst_agent":    MagicMock(**{"run.return_value": [3]}),
         "narrative_writer": MagicMock(**{"run.return_value": [4, 5, 6, 7, 8]}),
@@ -65,13 +70,15 @@ class TestFullPipelineFlow:
         result = orch.run(date.today())
 
         assert result.run_date == date.today().isoformat()
-        assert len(result.steps) == 7
+        assert len(result.steps) == 12
 
     def test_all_agents_called_once(self, tmp_db, cfg_file, monkeypatch):
         monkeypatch.setenv("DB_PATH", str(tmp_db.db_path))
         orch = _make_orch(cfg_file)
         orch.run(date.today())
 
+        orch._rss.run.assert_called_once_with(date.today())
+        orch._market.run.assert_called_once_with(date.today())
         orch._research.run.assert_called_once_with(date.today())
         orch._analyst.run.assert_called_once_with(date.today())
         orch._narrative.run.assert_called_once_with(date.today())
@@ -84,8 +91,9 @@ class TestFullPipelineFlow:
         monkeypatch.setenv("DB_PATH", str(tmp_db.db_path))
         orch = _make_orch(cfg_file)
         result = orch.run(date.today())
-        # research=2, analyst=1, narrative=5, tts=1, youtube=1, x=1, tiktok=3
-        assert result.total_outputs == 14
+        # rss=3, market=1, dedup=0, cluster=2, scorer=2, research=2, analyst=1,
+        # narrative=5, tts=1, youtube=1, x=1, tiktok=3
+        assert result.total_outputs == 22
 
     def test_step_names_in_order(self, tmp_db, cfg_file, monkeypatch):
         monkeypatch.setenv("DB_PATH", str(tmp_db.db_path))
@@ -93,6 +101,7 @@ class TestFullPipelineFlow:
         result = orch.run(date.today())
         names = [s.name for s in result.steps]
         assert names == [
+            "rss_fetcher", "market_fetcher", "deduplicator", "clusterer", "scorer",
             "research_agent", "analyst_agent", "narrative_writer",
             "tts_generator", "youtube_publisher", "x_publisher", "tiktok_publisher",
         ]

@@ -65,6 +65,11 @@ class PipelineOrchestrator:
 
     def __init__(
         self,
+        rss_fetcher=None,
+        market_fetcher=None,
+        deduplicator=None,
+        clusterer=None,
+        scorer=None,
         research_agent=None,
         analyst_agent=None,
         narrative_writer=None,
@@ -74,6 +79,11 @@ class PipelineOrchestrator:
         tiktok_publisher=None,
         config_path: str | Path | None = None,
     ) -> None:
+        self._rss = rss_fetcher
+        self._market = market_fetcher
+        self._dedup = deduplicator
+        self._clusterer = clusterer
+        self._scorer = scorer
         self._research = research_agent
         self._analyst = analyst_agent
         self._narrative = narrative_writer
@@ -89,7 +99,37 @@ class PipelineOrchestrator:
         self._evening_minute: int = pipeline_cfg.get("evening_run_minute", 0)
         self._tz_name: str = pipeline_cfg["timezone"]
 
-    # ── Lazy agent yükleme ────────────────────────────────────────────────────
+    # ── Lazy yükleme ─────────────────────────────────────────────────────────
+
+    def _get_rss(self):
+        if self._rss is None:
+            from src.ingestion.rss_fetcher import RSSFetcher
+            self._rss = RSSFetcher()
+        return self._rss
+
+    def _get_market(self):
+        if self._market is None:
+            from src.ingestion.market_fetcher import MarketFetcher
+            self._market = MarketFetcher()
+        return self._market
+
+    def _get_dedup(self):
+        if self._dedup is None:
+            from src.processing.deduplicator import Deduplicator
+            self._dedup = Deduplicator()
+        return self._dedup
+
+    def _get_clusterer(self):
+        if self._clusterer is None:
+            from src.processing.clusterer import Clusterer
+            self._clusterer = Clusterer()
+        return self._clusterer
+
+    def _get_scorer(self):
+        if self._scorer is None:
+            from src.processing.scorer import Scorer
+            self._scorer = Scorer()
+        return self._scorer
 
     def _get_research(self):
         if self._research is None:
@@ -175,6 +215,17 @@ class PipelineOrchestrator:
 
         result = PipelineResult(run_date=date_str)
         logger.info("[Pipeline] === %s başlıyor ===", date_str)
+
+        # ── İngestion + işleme adımları (her zaman çalışır) ──────────────────
+        ingestion_steps: list[tuple[str, Callable]] = [
+            ("rss_fetcher",   lambda: self._get_rss().run(run_date)),
+            ("market_fetcher",lambda: self._get_market().run(run_date)),
+            ("deduplicator",  lambda: self._get_dedup().run(run_date)),
+            ("clusterer",     lambda: self._get_clusterer().run(run_date)),
+            ("scorer",        lambda: self._get_scorer().run(run_date)),
+        ]
+        for name, fn in ingestion_steps:
+            result.steps.append(self._run_step(name, fn))
 
         # ── LLM adımları ─────────────────────────────────────────────────────
         llm_steps: list[tuple[str, Callable]] = [

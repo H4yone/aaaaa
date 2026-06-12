@@ -28,6 +28,11 @@ def _make_orchestrator(tmp_path: Path, **overrides) -> PipelineOrchestrator:
     cfg_file.write_text(yaml.dump(cfg), encoding="utf-8")
 
     defaults = dict(
+        rss_fetcher=MagicMock(**{"run.return_value": [101, 102, 103]}),
+        market_fetcher=MagicMock(**{"run.return_value": ["XU100.IS", "GARAN.IS"]}),
+        deduplicator=MagicMock(**{"run.return_value": []}),
+        clusterer=MagicMock(**{"run.return_value": [201, 202]}),
+        scorer=MagicMock(**{"run.return_value": [201, 202]}),
         research_agent=MagicMock(**{"run.return_value": [1, 2]}),
         analyst_agent=MagicMock(**{"run.return_value": [3]}),
         narrative_writer=MagicMock(**{"run.return_value": [4, 5, 6]}),
@@ -88,13 +93,12 @@ class TestRunHappyPath:
         orch = _make_orchestrator(tmp_path)
         result = orch.run(date(2026, 6, 12))
         names = [s.name for s in result.steps]
-        assert "research_agent" in names
-        assert "analyst_agent" in names
-        assert "narrative_writer" in names
-        assert "tts_generator" in names
-        assert "youtube_publisher" in names
-        assert "x_publisher" in names
-        assert "tiktok_publisher" in names
+        for expected in (
+            "rss_fetcher", "market_fetcher", "deduplicator", "clusterer", "scorer",
+            "research_agent", "analyst_agent", "narrative_writer",
+            "tts_generator", "youtube_publisher", "x_publisher", "tiktok_publisher",
+        ):
+            assert expected in names
 
     def test_all_steps_succeed(self, tmp_path):
         orch = _make_orchestrator(tmp_path)
@@ -107,6 +111,11 @@ class TestRunHappyPath:
         result = orch.run(date(2026, 6, 12))
 
         step_map = {s.name: s for s in result.steps}
+        assert step_map["rss_fetcher"].output_count == 3
+        assert step_map["market_fetcher"].output_count == 2
+        assert step_map["deduplicator"].output_count == 0
+        assert step_map["clusterer"].output_count == 2
+        assert step_map["scorer"].output_count == 2
         assert step_map["research_agent"].output_count == 2
         assert step_map["analyst_agent"].output_count == 1
         assert step_map["narrative_writer"].output_count == 3
@@ -120,6 +129,11 @@ class TestRunHappyPath:
         orch = _make_orchestrator(tmp_path)
         orch.run(run_date)
 
+        orch._rss.run.assert_called_once_with(run_date)
+        orch._market.run.assert_called_once_with(run_date)
+        orch._dedup.run.assert_called_once_with(run_date)
+        orch._clusterer.run.assert_called_once_with(run_date)
+        orch._scorer.run.assert_called_once_with(run_date)
         orch._research.run.assert_called_once_with(run_date)
         orch._analyst.run.assert_called_once_with(run_date)
         orch._narrative.run.assert_called_once_with(run_date)
