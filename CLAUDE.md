@@ -56,8 +56,8 @@ ham_haber (RSS/API)
 | 4 | Processing: `deduplicator.py` + `clusterer.py` + `scorer.py` | ⬜ Yapılmadı | — |
 | 5 | Intelligence: `llm_client.py` + `research_agent.py` | ✅ Bitti | `3bf7c33` |
 | 6 | Intelligence: `analyst_agent.py` (BIST derinleme analizi) | ✅ Bitti | `c82c827` |
-| 7 | Content: `narrative_writer.py` + `compliance_checker.py` | ✅ Bitti | `—` |
-| 8 | Content: platform formatlama (YouTube/TikTok/X şablonları) | ⬜ Yapılmadı | — |
+| 7 | Content: `narrative_writer.py` + `compliance_checker.py` | ✅ Bitti | `a24d904` |
+| 8 | Content: platform formatlama (YouTube/TikTok/X şablonları) | ✅ Bitti | `—` |
 | 9 | Production: `youtube_publisher.py` + `x_publisher.py` | ⬜ Yapılmadı | — |
 | 10 | Production: TikTok + ElevenLabs TTS entegrasyonu | ⬜ Yapılmadı | — |
 | 11 | Pipeline: `orchestrator.py` (zamanlama + hata yönetimi) | ⬜ Yapılmadı | — |
@@ -65,26 +65,9 @@ ham_haber (RSS/API)
 | 13 | End-to-end test + CLI runner | ⬜ Yapılmadı | — |
 | 14 | Deployment config + cron setup + README | ⬜ Yapılmadı | — |
 
-**Bir sonraki adım → Gün 8:** `src/production/youtube_publisher.py` + `src/production/x_publisher.py`
+**Bir sonraki adım → Gün 9:** `src/production/youtube_publisher.py` + `src/production/x_publisher.py`
 
----
-
-## Gün 8 — Ne Yapılacak
-
-`content` tablosunda `compliance_passed=1` ve `human_approved=1` olan satırları platforma yükler.
-
-`youtube_publisher.py`:
-- Google OAuth2 token yönetimi (credentials JSON → token refresh)
-- `youtube.videos().insert()` ile video upload (placeholder MP4 veya thumbnail+description)
-- `content.publish_url` ve `published_at` alanlarını günceller
-
-`x_publisher.py`:
-- Tweepy ile kimlik doğrulama (TWITTER_BEARER_TOKEN env'den)
-- `x_thread` platform body'sindeki `{"tweets": [...]}` JSON'unu parse eder
-- Thread olarak sıralı tweet atar (reply_to_tweet_id zinciri)
-- `content.publish_url` ve `published_at` güncellenir
-
-Test: mock API client'lar + DB fixture (production'a gerçek istek atmaz)
+> ✅ Gün 8 kapsamındaki publisher'lar Gün 8 branch'inde teslim edildi.
 
 ---
 
@@ -138,7 +121,9 @@ fin-media-network/
 │   ├── content/
 │   │   ├── compliance_checker.py  # ComplianceChecker, ComplianceResult
 │   │   └── narrative_writer.py    # NarrativeWriter.run(date) → content_ids[] (youtube/tiktok/x_thread)
-│   ├── production/                # ⬜ youtube_publisher.py, x_publisher.py
+│   ├── production/
+│   │   ├── youtube_publisher.py   # YouTubePublisher.run(date) → published_ids[]
+│   │   └── x_publisher.py        # XPublisher.run(date) → published_ids[]
 │   ├── pipeline/                  # ⬜ orchestrator.py
 │   └── feedback/                  # ⬜ metrics_fetcher.py, prompt_optimizer.py
 └── tests/
@@ -147,7 +132,9 @@ fin-media-network/
     ├── test_research_agent.py     # ✅ 15 test
     ├── test_analyst_agent.py      # ✅ 13 test
     ├── test_compliance_checker.py # ✅ 16 test
-    └── test_narrative_writer.py   # ✅ 7 test
+    ├── test_narrative_writer.py   # ✅ 7 test
+    ├── test_youtube_publisher.py  # ✅ 9 test
+    └── test_x_publisher.py        # ✅ 12 test
 ```
 
 ---
