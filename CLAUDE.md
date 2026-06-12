@@ -61,29 +61,28 @@ ham_haber (RSS/API)
 | 9 | Production: `youtube_publisher.py` + `x_publisher.py` | ✅ Bitti | `3cf1370` |
 | 10 | Production: TikTok + ElevenLabs TTS entegrasyonu | ✅ Bitti | `—` |
 | 11 | Pipeline: `orchestrator.py` (zamanlama + hata yönetimi) | ✅ Bitti | `—` |
-| 12 | Feedback: `metrics_fetcher.py` + `prompt_optimizer.py` | ⬜ Yapılmadı | — |
+| 12 | Feedback: `metrics_fetcher.py` + `prompt_optimizer.py` | ✅ Bitti | `—` |
 | 13 | End-to-end test + CLI runner | ⬜ Yapılmadı | — |
 | 14 | Deployment config + cron setup + README | ⬜ Yapılmadı | — |
 
-**Bir sonraki adım → Gün 12:** `src/feedback/metrics_fetcher.py` + `src/feedback/prompt_optimizer.py`
+**Bir sonraki adım → Gün 13:** End-to-end test + CLI runner
 
 ---
 
-## Gün 12 — Ne Yapılacak
+## Gün 13 — Ne Yapılacak
 
-Feedback katmanı: performans metriklerini topla → prompt versiyonlarını A/B test et.
+End-to-end test + CLI runner:
 
-`metrics_fetcher.py`:
-- `MetricsFetcher.run(date)` → YouTube/TikTok/X için görüntüleme, beğeni, izlenme süresi
-- YouTube Data API, TikTok Display API, Twitter v2 Metrics ile gerçek veriler
-- Sonuçları `performance` tablosuna yazar
+`tests/test_e2e.py`:
+- Tüm pipeline'ı gerçek SQLite DB ile entegrasyon testi (tüm API'ler mock)
+- `PipelineOrchestrator.run(date)` → içerik oluşturuldu, yayınlandı, metrikler çekildi doğrulaması
+- Bütçe aşımı senaryosu (LLM adımları atlanır ama publisher'lar çalışır)
 
-`prompt_optimizer.py`:
-- `PromptOptimizer.run(date)` → `performance` verisine bakarak en iyi prompt'u seçer
-- A/B test: iki farklı prompt versiyonu karşılaştırır, kazananı `prompt_versions` tablosuna yazar
-- Sonraki güne geçerken hangi promptun kullanılacağını belirler
-
-Test: mock API yanıtları + DB yazımı doğrulaması + A/B test mantığı
+`src/cli.py`:
+- `python -m src.cli run` → bugün için pipeline çalıştır
+- `python -m src.cli run --date 2026-06-12` → belirli tarih için
+- `python -m src.cli scheduled` → zamanlayıcı başlat (Ctrl+C ile durdur)
+- `python -m src.cli status` → DB özet raporu (kaç içerik, kaç yayın, günlük maliyet)
 
 ---
 
@@ -144,7 +143,9 @@ fin-media-network/
 │   │   └── tts_generator.py      # TTSGenerator.run(date) → mp3_paths[]
 │   ├── pipeline/
 │   │   └── orchestrator.py        # PipelineOrchestrator, PipelineResult, StepResult
-│   └── feedback/                  # ⬜ metrics_fetcher.py, prompt_optimizer.py
+│   └── feedback/
+│       ├── metrics_fetcher.py     # MetricsFetcher.run(date) → performance_ids[]
+│       └── prompt_optimizer.py    # PromptOptimizer.run(date) → A/B sonuç listesi
 └── tests/
     ├── test_database.py           # ✅ 7 test
     ├── test_llm_client.py         # ✅ 8 test
@@ -156,7 +157,9 @@ fin-media-network/
     ├── test_x_publisher.py        # ✅ 12 test
     ├── test_tts_generator.py      # ✅ 10 test
     ├── test_tiktok_publisher.py   # ✅ 10 test
-    └── test_orchestrator.py       # ✅ 19 test
+    ├── test_orchestrator.py       # ✅ 19 test
+    ├── test_metrics_fetcher.py    # ✅ 18 test
+    └── test_prompt_optimizer.py   # ✅ 14 test
 ```
 
 ---
