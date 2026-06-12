@@ -51,9 +51,9 @@ ham_haber (RSS/API)
 | Gün | Kapsam | Durum | Commit |
 |-----|--------|-------|--------|
 | 1 | DB katmanı: `schema.sql`, `database.py`, config dosyaları | ✅ Bitti | `10d4600` |
-| 2 | Ingestion: `rss_fetcher.py` (feedparser + url_hash) | ⬜ Yapılmadı | — |
-| 3 | Ingestion: `market_fetcher.py` (yfinance + FRED + EVDS + CoinGecko) | ⬜ Yapılmadı | — |
-| 4 | Processing: `deduplicator.py` + `clusterer.py` + `scorer.py` | ⬜ Yapılmadı | — |
+| 2 | Ingestion: `rss_fetcher.py` (feedparser + url_hash) | ✅ Bitti | `b860ca1` |
+| 3 | Ingestion: `market_fetcher.py` (yfinance + FRED + EVDS + CoinGecko) | ✅ Bitti | `b860ca1` |
+| 4 | Processing: `deduplicator.py` + `clusterer.py` + `scorer.py` | ✅ Bitti | `b860ca1` |
 | 5 | Intelligence: `llm_client.py` + `research_agent.py` | ✅ Bitti | `3bf7c33` |
 | 6 | Intelligence: `analyst_agent.py` (BIST derinleme analizi) | ✅ Bitti | `c82c827` |
 | 7 | Content: `narrative_writer.py` + `compliance_checker.py` | ✅ Bitti | `a24d904` |
