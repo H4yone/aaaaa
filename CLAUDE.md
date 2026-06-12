@@ -62,27 +62,10 @@ ham_haber (RSS/API)
 | 10 | Production: TikTok + ElevenLabs TTS entegrasyonu | ✅ Bitti | `—` |
 | 11 | Pipeline: `orchestrator.py` (zamanlama + hata yönetimi) | ✅ Bitti | `—` |
 | 12 | Feedback: `metrics_fetcher.py` + `prompt_optimizer.py` | ✅ Bitti | `—` |
-| 13 | End-to-end test + CLI runner | ⬜ Yapılmadı | — |
+| 13 | End-to-end test + CLI runner | ✅ Bitti | `—` |
 | 14 | Deployment config + cron setup + README | ⬜ Yapılmadı | — |
 
-**Bir sonraki adım → Gün 13:** End-to-end test + CLI runner
-
----
-
-## Gün 13 — Ne Yapılacak
-
-End-to-end test + CLI runner:
-
-`tests/test_e2e.py`:
-- Tüm pipeline'ı gerçek SQLite DB ile entegrasyon testi (tüm API'ler mock)
-- `PipelineOrchestrator.run(date)` → içerik oluşturuldu, yayınlandı, metrikler çekildi doğrulaması
-- Bütçe aşımı senaryosu (LLM adımları atlanır ama publisher'lar çalışır)
-
-`src/cli.py`:
-- `python -m src.cli run` → bugün için pipeline çalıştır
-- `python -m src.cli run --date 2026-06-12` → belirli tarih için
-- `python -m src.cli scheduled` → zamanlayıcı başlat (Ctrl+C ile durdur)
-- `python -m src.cli status` → DB özet raporu (kaç içerik, kaç yayın, günlük maliyet)
+**Bir sonraki adım → Gün 14:** Deployment config + cron setup + README
 
 ---
 
@@ -143,9 +126,10 @@ fin-media-network/
 │   │   └── tts_generator.py      # TTSGenerator.run(date) → mp3_paths[]
 │   ├── pipeline/
 │   │   └── orchestrator.py        # PipelineOrchestrator, PipelineResult, StepResult
-│   └── feedback/
-│       ├── metrics_fetcher.py     # MetricsFetcher.run(date) → performance_ids[]
-│       └── prompt_optimizer.py    # PromptOptimizer.run(date) → A/B sonuç listesi
+│   ├── feedback/
+│   │   ├── metrics_fetcher.py     # MetricsFetcher.run(date) → performance_ids[]
+│   │   └── prompt_optimizer.py    # PromptOptimizer.run(date) → A/B sonuç listesi
+│   └── cli.py                     # CLI: run / scheduled / status / init-db
 └── tests/
     ├── test_database.py           # ✅ 7 test
     ├── test_llm_client.py         # ✅ 8 test
@@ -159,7 +143,8 @@ fin-media-network/
     ├── test_tiktok_publisher.py   # ✅ 10 test
     ├── test_orchestrator.py       # ✅ 19 test
     ├── test_metrics_fetcher.py    # ✅ 18 test
-    └── test_prompt_optimizer.py   # ✅ 14 test
+    ├── test_prompt_optimizer.py   # ✅ 14 test
+    └── test_e2e.py                # ✅ 17 test (entegrasyon + CLI)
 ```
 
 ---
