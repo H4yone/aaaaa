@@ -55,8 +55,8 @@ ham_haber (RSS/API)
 | 3 | Ingestion: `market_fetcher.py` (yfinance + FRED + EVDS + CoinGecko) | ⬜ Yapılmadı | — |
 | 4 | Processing: `deduplicator.py` + `clusterer.py` + `scorer.py` | ⬜ Yapılmadı | — |
 | 5 | Intelligence: `llm_client.py` + `research_agent.py` | ✅ Bitti | `3bf7c33` |
-| 6 | Intelligence: `analyst_agent.py` (BIST derinleme analizi) | ✅ Bitti | `—` |
-| 7 | Content: `narrative_writer.py` + `compliance_checker.py` | ⬜ Yapılmadı | — |
+| 6 | Intelligence: `analyst_agent.py` (BIST derinleme analizi) | ✅ Bitti | `c82c827` |
+| 7 | Content: `narrative_writer.py` + `compliance_checker.py` | ✅ Bitti | `—` |
 | 8 | Content: platform formatlama (YouTube/TikTok/X şablonları) | ⬜ Yapılmadı | — |
 | 9 | Production: `youtube_publisher.py` + `x_publisher.py` | ⬜ Yapılmadı | — |
 | 10 | Production: TikTok + ElevenLabs TTS entegrasyonu | ⬜ Yapılmadı | — |
@@ -65,28 +65,26 @@ ham_haber (RSS/API)
 | 13 | End-to-end test + CLI runner | ⬜ Yapılmadı | — |
 | 14 | Deployment config + cron setup + README | ⬜ Yapılmadı | — |
 
-**Bir sonraki adım → Gün 7:** `src/content/narrative_writer.py` + `src/content/compliance_checker.py`
+**Bir sonraki adım → Gün 8:** `src/production/youtube_publisher.py` + `src/production/x_publisher.py`
 
 ---
 
-## Gün 7 — Ne Yapılacak
+## Gün 8 — Ne Yapılacak
 
-`analyst_agent.py` → `content` tablosuna "analyst_brief" yazar.
-`narrative_writer.py` ise `signals` tablosundan en yüksek sıralı sinyali alır
-ve üç farklı platform için içerik üretir:
+`content` tablosunda `compliance_passed=1` ve `human_approved=1` olan satırları platforma yükler.
 
-- **YouTube** (`platform="youtube"`): ~1000 kelime, başlık + gövde + kapanış disclaimer
-- **TikTok** (`platform="tiktok_1"`..`tiktok_4`): ~100 kelime, dikkat çekici hook + özet
-- **X thread** (`platform="x_thread"`): tweetler dizisi (her biri ≤280 karakter)
+`youtube_publisher.py`:
+- Google OAuth2 token yönetimi (credentials JSON → token refresh)
+- `youtube.videos().insert()` ile video upload (placeholder MP4 veya thumbnail+description)
+- `content.publish_url` ve `published_at` alanlarını günceller
 
-`compliance_checker.py`:
-- `config/banned_phrases.yaml`'ı regex ile tarar
-- `banned_patterns` eşleşirse `compliance_passed=0`, pipeline durur
-- `warning_patterns` eşleşirse `compliance_warnings` dolar ama içerik geçer
-- `required_endings` yoksa otomatik disclaimer ekler
-- Sadece `compliance_passed=1` olan satır `content` tablosuna yazılabilir
+`x_publisher.py`:
+- Tweepy ile kimlik doğrulama (TWITTER_BEARER_TOKEN env'den)
+- `x_thread` platform body'sindeki `{"tweets": [...]}` JSON'unu parse eder
+- Thread olarak sıralı tweet atar (reply_to_tweet_id zinciri)
+- `content.publish_url` ve `published_at` güncellenir
 
-Test: mock LLM + DB fixture + compliance senaryoları (yasak kelime, uyarı, eksik disclaimer)
+Test: mock API client'lar + DB fixture (production'a gerçek istek atmaz)
 
 ---
 
@@ -137,7 +135,9 @@ fin-media-network/
 │   │   └── analyst_agent.py       # AnalystAgent.run(date) → content_ids[] (analyst_brief)
 │   ├── ingestion/                 # ⬜ rss_fetcher.py, market_fetcher.py
 │   ├── processing/                # ⬜ deduplicator.py, clusterer.py, scorer.py
-│   ├── content/                   # ⬜ narrative_writer.py, compliance_checker.py
+│   ├── content/
+│   │   ├── compliance_checker.py  # ComplianceChecker, ComplianceResult
+│   │   └── narrative_writer.py    # NarrativeWriter.run(date) → content_ids[] (youtube/tiktok/x_thread)
 │   ├── production/                # ⬜ youtube_publisher.py, x_publisher.py
 │   ├── pipeline/                  # ⬜ orchestrator.py
 │   └── feedback/                  # ⬜ metrics_fetcher.py, prompt_optimizer.py
@@ -145,7 +145,9 @@ fin-media-network/
     ├── test_database.py           # ✅ 7 test
     ├── test_llm_client.py         # ✅ 8 test
     ├── test_research_agent.py     # ✅ 15 test
-    └── test_analyst_agent.py      # ✅ 13 test
+    ├── test_analyst_agent.py      # ✅ 13 test
+    ├── test_compliance_checker.py # ✅ 16 test
+    └── test_narrative_writer.py   # ✅ 7 test
 ```
 
 ---

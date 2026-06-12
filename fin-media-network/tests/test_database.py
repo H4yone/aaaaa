@@ -124,7 +124,8 @@ def test_log_llm_call_and_cost(db):
         "success": 1,
         "error_message": None,
     })
-    cost = db.get_daily_llm_cost("2026-06-11")
+    from datetime import date
+    cost = db.get_daily_llm_cost(date.today().isoformat())
     assert cost > 0.0
 
 
