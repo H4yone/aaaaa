@@ -37,7 +37,7 @@ ham_haber (RSS/API)
 [5] production/       youtube_publisher.py · x_publisher.py · tiktok_publisher.py
     │  YouTube Data API + Tweepy + TikTok SDK
     ▼
-[6] feedback/         metrics_fetcher.py · prompt_optimizer.py
+[6] feedback/         metrics_fetcher.py · prompt_optimizer.py  ← ŞU AN BURADA
     │  Görüntüleme/etkileşim → A/B test → prompt_versions tablosu
     ▼
 [DB] src/db/          database.py · schema.sql
@@ -60,33 +60,30 @@ ham_haber (RSS/API)
 | 8 | Content: platform formatlama (YouTube/TikTok/X şablonları) | ✅ Bitti | `3cf1370` |
 | 9 | Production: `youtube_publisher.py` + `x_publisher.py` | ✅ Bitti | `3cf1370` |
 | 10 | Production: TikTok + ElevenLabs TTS entegrasyonu | ✅ Bitti | `—` |
-| 11 | Pipeline: `orchestrator.py` (zamanlama + hata yönetimi) | ⬜ Yapılmadı | — |
+| 11 | Pipeline: `orchestrator.py` (zamanlama + hata yönetimi) | ✅ Bitti | `—` |
 | 12 | Feedback: `metrics_fetcher.py` + `prompt_optimizer.py` | ⬜ Yapılmadı | — |
 | 13 | End-to-end test + CLI runner | ⬜ Yapılmadı | — |
 | 14 | Deployment config + cron setup + README | ⬜ Yapılmadı | — |
 
-**Bir sonraki adım → Gün 11:** `src/pipeline/orchestrator.py`
+**Bir sonraki adım → Gün 12:** `src/feedback/metrics_fetcher.py` + `src/feedback/prompt_optimizer.py`
 
 ---
 
-## Gün 11 — Ne Yapılacak
+## Gün 12 — Ne Yapılacak
 
-Tüm katmanları sırayla çalıştıran tam pipeline koordinatörü:
+Feedback katmanı: performans metriklerini topla → prompt versiyonlarını A/B test et.
 
-```
-ResearchAgent → AnalystAgent → NarrativeWriter
-    → TTSGenerator → YouTubePublisher + XPublisher + TikTokPublisher
-```
+`metrics_fetcher.py`:
+- `MetricsFetcher.run(date)` → YouTube/TikTok/X için görüntüleme, beğeni, izlenme süresi
+- YouTube Data API, TikTok Display API, Twitter v2 Metrics ile gerçek veriler
+- Sonuçları `performance` tablosuna yazar
 
-`orchestrator.py`:
-- `PipelineOrchestrator.run(date)` → her katmanı sırayla çağırır
-- Her adımın çıktısını loglar ve bir sonraki adıma geçer
-- Herhangi bir adım exception fırlatırsa loglanır, pipeline devam eder (non-fatal)
-- `BudgetExceeded` → pipeline o gün için durur, sonraki güne geçilir
-- `settings.yaml`'daki `daily_run_hour` / `evening_run_hour` zamanlamayı destekler
-- Çalıştırma sonucunu `PipelineResult` dataclass'ında döner (her adımın başarı/hata durumu)
+`prompt_optimizer.py`:
+- `PromptOptimizer.run(date)` → `performance` verisine bakarak en iyi prompt'u seçer
+- A/B test: iki farklı prompt versiyonu karşılaştırır, kazananı `prompt_versions` tablosuna yazar
+- Sonraki güne geçerken hangi promptun kullanılacağını belirler
 
-Test: her ajanın mock'u + sıralı çağrı doğrulaması + hata izolasyonu
+Test: mock API yanıtları + DB yazımı doğrulaması + A/B test mantığı
 
 ---
 
@@ -145,7 +142,8 @@ fin-media-network/
 │   │   ├── x_publisher.py        # XPublisher.run(date) → published_ids[]
 │   │   ├── tiktok_publisher.py   # TikTokPublisher.run(date) → published_ids[]
 │   │   └── tts_generator.py      # TTSGenerator.run(date) → mp3_paths[]
-│   ├── pipeline/                  # ⬜ orchestrator.py
+│   ├── pipeline/
+│   │   └── orchestrator.py        # PipelineOrchestrator, PipelineResult, StepResult
 │   └── feedback/                  # ⬜ metrics_fetcher.py, prompt_optimizer.py
 └── tests/
     ├── test_database.py           # ✅ 7 test
@@ -157,7 +155,8 @@ fin-media-network/
     ├── test_youtube_publisher.py  # ✅ 9 test
     ├── test_x_publisher.py        # ✅ 12 test
     ├── test_tts_generator.py      # ✅ 10 test
-    └── test_tiktok_publisher.py   # ✅ 10 test
+    ├── test_tiktok_publisher.py   # ✅ 10 test
+    └── test_orchestrator.py       # ✅ 19 test
 ```
 
 ---
