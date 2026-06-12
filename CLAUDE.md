@@ -63,9 +63,9 @@ ham_haber (RSS/API)
 | 11 | Pipeline: `orchestrator.py` (zamanlama + hata yönetimi) | ✅ Bitti | `—` |
 | 12 | Feedback: `metrics_fetcher.py` + `prompt_optimizer.py` | ✅ Bitti | `—` |
 | 13 | End-to-end test + CLI runner | ✅ Bitti | `—` |
-| 14 | Deployment config + cron setup + README | ⬜ Yapılmadı | — |
+| 14 | Deployment config + cron setup + README | ✅ Bitti | `—` |
 
-**Bir sonraki adım → Gün 14:** Deployment config + cron setup + README
+**Proje tamamlandı.** 14 günün tamamı bitti — 175 test, 7 üretim katmanı.
 
 ---
 

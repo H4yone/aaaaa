@@ -1,0 +1,24 @@
+[Unit]
+Description=fin-media-network Zamanlayıcı (Pipeline Orchestrator)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# Gerçek kullanıcı adıyla değiştirin
+User=finmedia
+Group=finmedia
+WorkingDirectory=/opt/fin-media-network
+# .env dosyasından çevre değişkenlerini yükle
+EnvironmentFile=/opt/fin-media-network/.env
+ExecStart=/opt/fin-media-network/venv/bin/python -m src.cli scheduled
+# Hata durumunda 30 saniye bekleyip yeniden başlat
+Restart=on-failure
+RestartSec=30
+# stdout/stderr → systemd journald
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=fin-media
+
+[Install]
+WantedBy=multi-user.target
