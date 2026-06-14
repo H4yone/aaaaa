@@ -238,6 +238,15 @@ def cmd_export_script(args: argparse.Namespace) -> int:
         "SUNUCU":  ("Annie Desk Sitting (oturan, masa başı)",  "Dynamic Derya — Türkçe, kadın"),
         "ANALİST": ("Brandon Business Sitting (oturan, ofis)", "Doga — Türkçe, erkek"),
     }
+    # Karakter isimlerini settings.yaml'dan al (föyde göstermek için)
+    import yaml as _yaml
+    from pathlib import Path as _Path
+    try:
+        _cfg = _yaml.safe_load((_Path(__file__).parent.parent / "config" / "settings.yaml")
+                               .read_text(encoding="utf-8")).get("content", {})
+        names = {"SUNUCU": _cfg.get("host_name", ""), "ANALİST": _cfg.get("analyst_name", "")}
+    except OSError:
+        names = {"SUNUCU": "", "ANALİST": ""}
     db = get_db()
     output_dir = Path(os.getenv("OUTPUT_DIR", "output"))
     cols = "id, date, platform, title, body"
@@ -277,7 +286,8 @@ def cmd_export_script(args: argparse.Namespace) -> int:
             "Oyuncu kadrosu (HeyGen UI'da seç):",
         ]
         for speaker, (avatar, voice) in cast.items():
-            lines.append(f"  {speaker:8} → Avatar: {avatar}  |  Ses: {voice}")
+            label = f"{speaker} ({names[speaker]})" if names.get(speaker) else speaker
+            lines.append(f"  {label:18} → Avatar: {avatar}  |  Ses: {voice}")
         lines += [
             f"Toplam sahne : {len(segments)}",
             f"Bitince indir ve şuraya kaydet → {save_as}",

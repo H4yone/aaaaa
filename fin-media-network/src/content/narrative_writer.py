@@ -71,17 +71,24 @@ Genel yön   : {bias} (güven: {confidence:.0%})
 ## Senaryo Analizi (olasılıklarıyla)
 {scenarios}
 
+## Karakterler
+- SUNUCU'nun adı: {host_name} (kadın sunucu)
+- ANALİST'in adı: {analyst_name} (erkek analist)
+Açılışta SUNUCU kendini adıyla tanıtsın ve analisti adıyla takdim etsin;
+diyalog boyunca birbirlerine zaman zaman isimleriyle hitap etsinler (doğal,
+abartısız). Etiketler yine [SUNUCU]/[ANALİST] olarak kalsın.
+
 ## Format Kuralları
 - Her satır [SUNUCU] veya [ANALİST] etiketiyle başlasın
-- SUNUCU: izleyiciyi selamlar, haberi tanıtır, sorular sorar, uğurlar
-- ANALİST: verileri, BIST etkilerini ve piyasa dinamiklerini açıklar
+- SUNUCU ({host_name}): izleyiciyi selamlar, haberi tanıtır, sorular sorar, uğurlar
+- ANALİST ({analyst_name}): verileri, BIST etkilerini ve piyasa dinamiklerini açıklar
 - Senaryo yalnızca yukarıdaki güncel haber verisine dayansın; başka olay,
   tarih veya rakam uydurma. Konuyu "bugünün gündemi" olarak çerçevele
 - Markdown kullanma, her satır etiketle başlasın
 
 ## Zorunlu İskelet — TAM OLARAK bu 7 repliği üret, fazlasını ASLA ekleme
 Her replik UZUN ve DOLU olsun (3–5 cümle); toplam {min_words}–{max_words} kelime.
-1) [SUNUCU] Açılış selamı + haberi tanıt + analiste ilk soru
+1) [SUNUCU] {host_name} açılış selamı + kendini ve analist {analyst_name}'i tanıt + ilk soru
 2) [ANALİST] Ne olduğunu ve neden önemli olduğunu derinlemesine açıkla
 3) [SUNUCU] Konuyu BIST/sektör etkisine bağlayan ikinci soru
 4) [ANALİST] BIST etkileri, sektörler ve piyasa dinamiklerini verilerle açıkla
@@ -195,6 +202,8 @@ class NarrativeWriter:
         self._yt_max: int = content_cfg["youtube_max_words"]
         self._tt_min: int = content_cfg["tiktok_min_words"]
         self._tt_max: int = content_cfg["tiktok_max_words"]
+        self._host_name: str = content_cfg.get("host_name", "Sunucu")
+        self._analyst_name: str = content_cfg.get("analyst_name", "Analist")
         # YouTube senaryosu için opsiyonel güçlü model (yoksa ana model)
         self._yt_model: str | None = cfg.get("llm", {}).get("narrative_model")
 
@@ -210,6 +219,8 @@ class NarrativeWriter:
             confidence=float(signal["confidence"] or 0.5),
             bist_impact=_fmt_bist_impact(signal["bist_impact_json"]),
             scenarios=_fmt_scenarios(brief_body),
+            host_name=self._host_name,
+            analyst_name=self._analyst_name,
             min_words=self._yt_min,
             max_words=self._yt_max,
         )

@@ -22,6 +22,9 @@ production:
   youtube_privacy: "unlisted"
 
 content:
+  # Karakter isimleri — senaryoda sunucu/analist bu isimlerle hitap eder
+  host_name: "Esin"
+  analyst_name: "İsmail"
   # 6-8 replikli, her biri dolu (2-4 cümle) bir röportaj için makul uzunluk
   youtube_min_words: 450
   youtube_max_words: 650
