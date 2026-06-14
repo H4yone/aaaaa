@@ -22,9 +22,21 @@ from typing import Any
 
 logger = logging.getLogger(__name__)
 
+_SETTINGS_PATH = Path(__file__).parent.parent.parent / "config" / "settings.yaml"
+
 # Yükleme kategorisi (Finance & Business)
 _YT_CATEGORY_ID = "25"
 _YT_DEFAULT_LANGUAGE = "tr"
+_DEFAULT_PRIVACY = "unlisted"  # public | unlisted | private
+
+
+def _load_privacy() -> str:
+    import yaml
+    try:
+        cfg = yaml.safe_load(_SETTINGS_PATH.read_text(encoding="utf-8")) or {}
+        return (cfg.get("production") or {}).get("youtube_privacy", _DEFAULT_PRIVACY)
+    except OSError:
+        return _DEFAULT_PRIVACY
 
 
 class YouTubePublisher:
@@ -35,8 +47,9 @@ class YouTubePublisher:
     prodüksiyonda None bırakılır ve OAuth2 ile build edilir.
     """
 
-    def __init__(self, service: Any | None = None) -> None:
+    def __init__(self, service: Any | None = None, privacy: str | None = None) -> None:
         self._service = service
+        self._privacy = privacy or _load_privacy()
 
     # ── OAuth2 / servis kurulumu ──────────────────────────────────────────────
 
@@ -98,7 +111,7 @@ class YouTubePublisher:
                 "defaultLanguage": _YT_DEFAULT_LANGUAGE,
             },
             "status": {
-                "privacyStatus": "public",
+                "privacyStatus": self._privacy,
                 "selfDeclaredMadeForKids": False,
             },
         }

@@ -17,6 +17,10 @@ deduplication:
   fuzzy_threshold: 90      # rapidfuzz benzerlik eşiği (0-100)
   embedding_cosine: 0.85   # cosine benzerlik eşiği
 
+production:
+  # YouTube video görünürlüğü: public | unlisted | private
+  youtube_privacy: "unlisted"
+
 content:
   youtube_min_words: 900
   youtube_max_words: 1100
