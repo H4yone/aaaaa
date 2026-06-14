@@ -235,8 +235,8 @@ def cmd_export_script(args: argparse.Namespace) -> int:
 
     # Konuşmacı → (avatar, ses) önerisi — HeyGen UI'da bu isimlerle seç
     cast = {
-        "SUNUCU":  ("Adriana (Business)",  "Dynamic Derya — Türkçe, kadın"),
-        "ANALİST": ("Adrian (Mavi Takım)", "Doga — Türkçe, erkek"),
+        "SUNUCU":  ("Annie Desk Sitting (oturan, masa başı)",  "Dynamic Derya — Türkçe, kadın"),
+        "ANALİST": ("Brandon Business Sitting (oturan, ofis)", "Doga — Türkçe, erkek"),
     }
     db = get_db()
     output_dir = Path(os.getenv("OUTPUT_DIR", "output"))
