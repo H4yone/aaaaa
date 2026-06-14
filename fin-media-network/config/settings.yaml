@@ -37,6 +37,8 @@ intelligence:
 
 llm:
   model: "gpt-4o-mini"
+  # YouTube röportaj senaryosu için daha güçlü model (kalite ↑). Boş bırakılırsa ana model.
+  narrative_model: "gpt-4o"
   max_tokens: 4096
   temperature: 0.3
   # Bütçe token cinsindendir ve gerçek token kullanımıyla (input+output) karşılaştırılır.

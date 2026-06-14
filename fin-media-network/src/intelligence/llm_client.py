@@ -93,8 +93,9 @@ class LLMClient:
 
     # ── Maliyet hesabı ────────────────────────────────────────────────────────
 
-    def compute_cost(self, input_tokens: int, output_tokens: int) -> float:
-        price = _PRICING.get(self.model, _PRICING["gpt-4o-mini"])
+    def compute_cost(self, input_tokens: int, output_tokens: int,
+                     model: str | None = None) -> float:
+        price = _PRICING.get(model or self.model, _PRICING["gpt-4o-mini"])
         return (input_tokens * price["input"] + output_tokens * price["output"]) / 1_000_000
 
     # ── API çağrısı ───────────────────────────────────────────────────────────
@@ -110,6 +111,7 @@ class LLMClient:
         agent: str,
         messages: list[dict],
         system: str | None = None,
+        model: str | None = None,
     ) -> LLMResponse:
         """
         OpenAI'ya mesaj gönder, token kullanımını logla.
@@ -118,8 +120,10 @@ class LLMClient:
             agent: "research" | "analyst" | "narrative" | "content" | "feedback"
             messages: [{"role": "user"/"assistant", "content": "..."}]
             system: Sistem istemi (opsiyonel) — messages listesinin başına eklenir
+            model: Bu çağrı için model override (None → settings.yaml'daki model)
         """
         self._check_budget()
+        use_model = model or self.model
 
         full_messages: list[dict] = []
         if system:
@@ -134,7 +138,7 @@ class LLMClient:
 
         try:
             resp = self._client.chat.completions.create(
-                model=self.model,
+                model=use_model,
                 max_tokens=self.max_tokens,
                 temperature=self.temperature,
                 messages=full_messages,
@@ -151,12 +155,12 @@ class LLMClient:
         finally:
             duration_ms = int((time.monotonic() - start) * 1000)
             total_tokens = input_tokens + output_tokens
-            cost_usd = self.compute_cost(input_tokens, output_tokens)
+            cost_usd = self.compute_cost(input_tokens, output_tokens, use_model)
 
             try:
                 get_db().log_llm_call({
                     "agent": agent,
-                    "model": self.model,
+                    "model": use_model,
                     "input_tokens": input_tokens,
                     "output_tokens": output_tokens,
                     "total_tokens": total_tokens,

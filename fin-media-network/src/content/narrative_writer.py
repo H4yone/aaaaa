@@ -33,16 +33,24 @@ logger = logging.getLogger(__name__)
 _CONFIG_PATH = Path(__file__).parent.parent.parent / "config" / "settings.yaml"
 
 _SYSTEM = """\
-Sen iki sunuculu bir Türk finansal YouTube/TikTok kanalının senaryo yazarısın.
-- SUNUCU: Haberleri tanıtır, soruları yönlendirir, izleyiciyle bağ kurar.
-- ANALİST: Piyasa dinamiklerini, BIST etkilerini ve verileri derinlemesine açıklar.
-Her konuşma satırı [SUNUCU] veya [ANALİST] etiketiyle başlar.
-Türkçe yaz. Anlaşılır, bilgilendirici, tarafsız ol.
-Yatırım tavsiyesi verme — sadece analiz et ve bilgilendir.
-Senaryoyu YALNIZCA sana verilen güncel haber verisine dayandır; uydurma olay,
-tarih veya rakam ekleme. Konuyu izleyiciye "bugünün piyasa gündemi" olarak,
-güncel ve zamanında sun.
-Çıktın her zaman istenen formatta olsun.\
+Sen, kurumsal kalitede bir Türk finansal yayın kanalının baş senaristisin.
+İki deneyimli profesyonel arasında geçen bir röportaj yazıyorsun:
+- SUNUCU: Tecrübeli bir finans editörü/sunucu. Haberi profesyonelce çerçeveler,
+  keskin ve yönlendirici sorular sorar; magazinsel değil, kurumsal bir dil kullanır.
+- ANALİST: Kıdemli bir piyasa stratejisti. Sektör ve hisse seviyesinde somut,
+  veriye dayalı analiz yapar; iletim mekanizmasını (haber → BIST etkisi) açıklar,
+  senaryoları olasılıklarıyla tartar, riskleri ve izlenecek seviyeleri belirtir.
+
+Kurallar:
+- Türkçe, akıcı, kurumsal ve profesyonel bir dil kullan. Klişe ve dolgu cümleler
+  ("çok önemli bir konu", "hadi inceleyelim") KULLANMA; doğrudan içeriğe gir.
+- ANALİST mutlaka sana verilen SOMUT BIST hisse kodlarına ve sektörlere atıf yapsın
+  (ör. ASELS.IS), genelleme yapıp geçiştirmesin.
+- Sayılar, senaryolar ve etkiler YALNIZCA sana verilen veriye dayansın; uydurma
+  fiyat, tarih, oran veya olay EKLEME.
+- Yatırım tavsiyesi verme — analiz et, bilgilendir, dengeli ol.
+- Konuyu "bugünün piyasa gündemi" olarak, güncel ve zamanında sun.
+- Her konuşma satırı [SUNUCU] veya [ANALİST] etiketiyle başlar. Format kusursuz olsun.\
 """
 
 # ── Platform prompt'ları ──────────────────────────────────────────────────────
@@ -57,7 +65,10 @@ Ne oldu     : {what_happened}
 Neden önemli: {why_it_matters}
 Genel yön   : {bias} (güven: {confidence:.0%})
 
-## Senaryo Analizi
+## Somut BIST Etkisi (analiste bunları kullandır)
+{bist_impact}
+
+## Senaryo Analizi (olasılıklarıyla)
 {scenarios}
 
 ## Format Kuralları
@@ -138,6 +149,24 @@ def _fmt_scenarios(analyst_brief_body: str | None) -> str:
         return "Senaryo analizi okunamadı."
 
 
+def _fmt_bist_impact(bist_impact_json: str | None) -> str:
+    """Sinyalin somut BIST etki verisini (sektör + hisse kodu + yön) metne döker."""
+    if not bist_impact_json:
+        return "Somut BIST etki verisi yok."
+    try:
+        data = json.loads(bist_impact_json)
+        lines = [f"Genel BIST etkisi: {data.get('overall', 'nötr')}"]
+        for sec in data.get("sectors", []):
+            stocks = ", ".join(sec.get("stocks", [])) or "—"
+            lines.append(
+                f"- {sec.get('sector', '?')} [{stocks}] → yön: {sec.get('direction', '?')}; "
+                f"gerekçe: {sec.get('reasoning', '')}"
+            )
+        return "\n".join(lines)
+    except (json.JSONDecodeError, TypeError):
+        return "BIST etki verisi okunamadı."
+
+
 def _parse_json(raw: str) -> dict:
     m = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", raw, re.DOTALL)
     if m:
@@ -160,11 +189,14 @@ class NarrativeWriter:
         self._llm = llm_client or LLMClient()
         self._compliance = compliance_checker or ComplianceChecker()
         cfg_path = Path(config_path) if config_path else _CONFIG_PATH
-        content_cfg = yaml.safe_load(cfg_path.read_text(encoding="utf-8"))["content"]
+        cfg = yaml.safe_load(cfg_path.read_text(encoding="utf-8"))
+        content_cfg = cfg["content"]
         self._yt_min: int = content_cfg["youtube_min_words"]
         self._yt_max: int = content_cfg["youtube_max_words"]
         self._tt_min: int = content_cfg["tiktok_min_words"]
         self._tt_max: int = content_cfg["tiktok_max_words"]
+        # YouTube senaryosu için opsiyonel güçlü model (yoksa ana model)
+        self._yt_model: str | None = cfg.get("llm", {}).get("narrative_model")
 
     # ── İçerik üretimi ────────────────────────────────────────────────────────
 
@@ -176,6 +208,7 @@ class NarrativeWriter:
             why_it_matters=signal["why_it_matters"],
             bias=signal["bias"] or "neutral",
             confidence=float(signal["confidence"] or 0.5),
+            bist_impact=_fmt_bist_impact(signal["bist_impact_json"]),
             scenarios=_fmt_scenarios(brief_body),
             min_words=self._yt_min,
             max_words=self._yt_max,
@@ -184,6 +217,7 @@ class NarrativeWriter:
             agent="narrative",
             messages=[{"role": "user", "content": prompt}],
             system=_SYSTEM,
+            model=self._yt_model,
         )
         return resp.content
 
