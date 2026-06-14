@@ -121,17 +121,26 @@ Her konuşma satırı [SUNUCU] veya [ANALİST] etiketiyle başlasın.
 """
 
 _X_PROMPT = """\
-Aşağıdaki analizi Twitter/X thread'ine dönüştür.
-- 5–8 tweet, her biri ≤280 karakter
-- İlk tweet: dikkat çekici hook
-- Son tweet: "Bu içerik yatırım tavsiyesi değildir." içersin
+Aşağıdaki güncel finansal analizi profesyonel bir Türk piyasa/finans X (Twitter)
+thread'ine dönüştür.
 
-## Kaynak
-{headline}
+## Kaynak Sinyal
+Başlık      : {headline}
+Ne oldu     : {what_happened}
+Neden önemli: {why_it_matters}
 
-{what_happened}
+## Somut BIST Etkisi (kullan, genel geçme)
+{bist_impact}
 
-{why_it_matters}
+## Kurallar
+- 5–7 tweet, her biri ≤275 karakter; numara/sayaç ekleme, akış doğal olsun
+- 1. tweet: güçlü, merak uyandıran ama abartısız hook — konuyu net ver
+- Orta tweetler: SOMUT analiz — gerçek BIST hisse kodlarına (ör. ASELS.IS),
+  CDS/risk primine ve sektör etkisine atıf yap; klişe ve dolgu kullanma
+- Kurumsal, net, profesyonel dil. Yalnızca verilen veriye dayan; uydurma
+  rakam, tarih veya olay ekleme
+- Uygun yerde en çok 1-2 sade emoji (abartma)
+- Son tweet mutlaka: "Bu içerik yatırım tavsiyesi değildir."
 
 ## Çıktı — sadece aşağıdaki JSON'u döndür:
 {{
@@ -204,7 +213,7 @@ class NarrativeWriter:
         self._tt_max: int = content_cfg["tiktok_max_words"]
         self._host_name: str = content_cfg.get("host_name", "Sunucu")
         self._analyst_name: str = content_cfg.get("analyst_name", "Analist")
-        # YouTube senaryosu için opsiyonel güçlü model (yoksa ana model)
+        # YouTube/X senaryosu için opsiyonel güçlü model (yoksa ana model)
         self._yt_model: str | None = cfg.get("llm", {}).get("narrative_model")
 
     # ── İçerik üretimi ────────────────────────────────────────────────────────
@@ -254,11 +263,13 @@ class NarrativeWriter:
             headline=signal["headline"],
             what_happened=signal["what_happened"],
             why_it_matters=signal["why_it_matters"],
+            bist_impact=_fmt_bist_impact(signal["bist_impact_json"]),
         )
         resp = self._llm.call(
             agent="narrative",
             messages=[{"role": "user", "content": prompt}],
             system=_SYSTEM,
+            model=self._yt_model,
         )
         parsed = _parse_json(resp.content)
         return parsed.get("tweets", [])
