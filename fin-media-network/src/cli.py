@@ -226,6 +226,75 @@ def cmd_approve(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_export_script(args: argparse.Namespace) -> int:
+    """Diyalog içeriğini HeyGen web stüdyosu için sahne sahne föye aktarır."""
+    import os
+    from pathlib import Path
+    from src.db.database import get_db
+    from src.production.tts_generator import _parse_dialogue
+
+    # Konuşmacı → (avatar, ses) önerisi — HeyGen UI'da bu isimlerle seç
+    cast = {
+        "SUNUCU":  ("Adrian (Mavi Takım)", "Doga — Türkçe, erkek"),
+        "ANALİST": ("Adriana (Business)",  "Dynamic Derya — Türkçe, kadın"),
+    }
+    db = get_db()
+    output_dir = Path(os.getenv("OUTPUT_DIR", "output"))
+    cols = "id, date, platform, title, body"
+
+    if args.ids:
+        placeholders = ",".join("?" * len(args.ids))
+        rows = db.fetchall(f"SELECT {cols} FROM content WHERE id IN ({placeholders})",
+                           tuple(args.ids))
+    elif args.date:
+        rows = db.fetchall(f"SELECT {cols} FROM content WHERE date=? AND platform=?",
+                           (args.date, args.platform))
+    else:
+        logger.error("En az bir içerik id'si ya da --date gerekli.")
+        return 1
+
+    if not rows:
+        print("İçerik bulunamadı.")
+        return 0
+
+    for r in rows:
+        segments = _parse_dialogue(r["body"])
+        if not segments:
+            print(f"  #{r['id']} ({r['platform']}): diyalog etiketi yok, atlandı")
+            continue
+
+        date_str = r["date"].isoformat() if hasattr(r["date"], "isoformat") else str(r["date"])
+        base = output_dir / date_str
+        base.mkdir(parents=True, exist_ok=True)
+        foy_path = base / f"{r['platform']}_{r['id']}_heygen.txt"
+        save_as = base / f"{r['platform']}_{r['id']}.mp4"
+
+        lines = [
+            f"HeyGen Çekim Föyü — içerik #{r['id']} ({r['platform']})",
+            f"Başlık : {r['title']}",
+            "Boyut  : 16:9, 1080p    |    Arka plan: stüdyo / haber masası",
+            "",
+            "Oyuncu kadrosu (HeyGen UI'da seç):",
+        ]
+        for speaker, (avatar, voice) in cast.items():
+            lines.append(f"  {speaker:8} → Avatar: {avatar}  |  Ses: {voice}")
+        lines += [
+            f"Toplam sahne : {len(segments)}",
+            f"Bitince indir ve şuraya kaydet → {save_as}",
+            "=" * 72,
+        ]
+        for i, (speaker, text) in enumerate(segments, 1):
+            avatar, voice = cast.get(speaker, ("?", "?"))
+            lines.append(f"\nSahne {i} — {speaker}   [Avatar: {avatar} | Ses: {voice}]")
+            lines.append(text)
+
+        foy_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+        print(f"  #{r['id']}: {len(segments)} sahne → {foy_path}")
+        print(f"        videoyu kaydet → {save_as}")
+
+    return 0
+
+
 # ── Argparse kurulumu ─────────────────────────────────────────────────────────
 
 def build_parser() -> argparse.ArgumentParser:
@@ -258,6 +327,16 @@ def build_parser() -> argparse.ArgumentParser:
     p_app.add_argument("--platform",
                        help="--date ile: sadece bu platform (örn. youtube)")
 
+    # export-script
+    p_exp = sub.add_parser("export-script",
+                           help="İçeriği HeyGen çekim föyüne (sahne sahne) aktar")
+    p_exp.add_argument("ids", nargs="*", type=int, metavar="ID",
+                       help="Föye aktarılacak içerik id'leri")
+    p_exp.add_argument("--date", metavar="YYYY-MM-DD",
+                       help="Bu tarihteki içeriği aktar")
+    p_exp.add_argument("--platform", default="youtube",
+                       help="--date ile birlikte platform (varsayılan: youtube)")
+
     return parser
 
 
@@ -271,6 +350,7 @@ def main(argv: list[str] | None = None) -> int:
         "status":    cmd_status,
         "init-db":   cmd_init_db,
         "approve":   cmd_approve,
+        "export-script": cmd_export_script,
     }
     return handlers[args.command](args)
 

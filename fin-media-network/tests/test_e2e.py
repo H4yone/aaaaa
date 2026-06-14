@@ -401,3 +401,39 @@ class TestApproveCommand:
         monkeypatch.setenv("DB_PATH", str(tmp_db.db_path))
         from src.cli import main
         assert main(["approve"]) == 1
+
+
+class TestExportScriptCommand:
+    @staticmethod
+    def _insert_dialogue(db, date_str: str) -> int:
+        return db.insert_content({
+            "date": date_str,
+            "platform": "youtube",
+            "title": "BIST analizi başlık",
+            "body": "[SUNUCU] Merhaba. [ANALİST] Fed sabit. [SUNUCU] Teşekkürler.",
+            "word_count": 6,
+            "compliance_passed": 1,
+            "compliance_warnings": json.dumps([]),
+            "prompt_version_id": None,
+        })
+
+    def test_writes_heygen_foy_with_scenes(self, tmp_db, tmp_path, monkeypatch):
+        monkeypatch.setenv("DB_PATH", str(tmp_db.db_path))
+        monkeypatch.setenv("OUTPUT_DIR", str(tmp_path))
+        today = date.today().isoformat()
+        cid = self._insert_dialogue(tmp_db, today)
+
+        from src.cli import main
+        assert main(["export-script", str(cid)]) == 0
+
+        foy = tmp_path / today / f"youtube_{cid}_heygen.txt"
+        assert foy.exists()
+        text = foy.read_text(encoding="utf-8")
+        assert "Sahne 1 — SUNUCU" in text
+        assert "Sahne 2 — ANALİST" in text
+        assert "Sahne 3 — SUNUCU" in text
+
+    def test_without_id_or_date_exits_one(self, tmp_db, monkeypatch):
+        monkeypatch.setenv("DB_PATH", str(tmp_db.db_path))
+        from src.cli import main
+        assert main(["export-script"]) == 1
