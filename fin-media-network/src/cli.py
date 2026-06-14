@@ -15,6 +15,9 @@ import logging
 import sys
 from datetime import date, datetime
 
+from dotenv import load_dotenv
+load_dotenv()  # .env dosyasını yükle — API key'lerin ortam değişkenine alınması
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s %(levelname)-8s %(name)s — %(message)s",
