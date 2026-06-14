@@ -22,8 +22,9 @@ production:
   youtube_privacy: "unlisted"
 
 content:
-  youtube_min_words: 900
-  youtube_max_words: 1100
+  # 6-8 replikli, her biri dolu (2-4 cümle) bir röportaj için makul uzunluk
+  youtube_min_words: 450
+  youtube_max_words: 650
   tiktok_min_words: 80
   tiktok_max_words: 130
   daily_tiktok_count: 4
