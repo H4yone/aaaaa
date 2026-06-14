@@ -72,29 +72,23 @@ class LLMClient:
 
     # ── Bütçe yönetimi ────────────────────────────────────────────────────────
 
-    def _token_budget_to_usd(self, tokens: int) -> float:
-        """Token sayısını tahmini USD maliyete çevirir (input fiyatı baz alır)."""
-        price = _PRICING.get(self.model, _PRICING["gpt-4o-mini"])
-        return tokens / 1_000_000 * price["input"]
-
     def _check_budget(self) -> None:
+        # Bütçe gerçek token kullanımıyla (input+output) karşılaştırılır; fiyat
+        # dönüşümü yapılmaz — aksi halde çıktı maliyeti göz ardı edilirdi.
         today = date.today().isoformat()
         year_month = today[:7]
         db = get_db()
 
-        daily_spent = db.get_daily_llm_cost(today)
-        monthly_spent = db.get_monthly_llm_cost(year_month)
+        daily_tokens = db.get_daily_llm_tokens(today)
+        monthly_tokens = db.get_monthly_llm_tokens(year_month)
 
-        daily_limit = self._token_budget_to_usd(self._daily_token_budget)
-        monthly_limit = self._token_budget_to_usd(self._monthly_token_budget)
-
-        if daily_spent >= daily_limit:
+        if daily_tokens >= self._daily_token_budget:
             raise BudgetExceeded(
-                f"Günlük bütçe aşıldı: ${daily_spent:.4f} / ${daily_limit:.4f}"
+                f"Günlük bütçe aşıldı: {daily_tokens:,} / {self._daily_token_budget:,} token"
             )
-        if monthly_spent >= monthly_limit:
+        if monthly_tokens >= self._monthly_token_budget:
             raise BudgetExceeded(
-                f"Aylık bütçe aşıldı: ${monthly_spent:.4f} / ${monthly_limit:.4f}"
+                f"Aylık bütçe aşıldı: {monthly_tokens:,} / {self._monthly_token_budget:,} token"
             )
 
     # ── Maliyet hesabı ────────────────────────────────────────────────────────

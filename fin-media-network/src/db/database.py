@@ -157,6 +157,20 @@ class Database:
         )
         return float(row["total"] or 0.0)
 
+    def get_daily_llm_tokens(self, date: str) -> int:
+        row = self.fetchone(
+            "SELECT SUM(total_tokens) as total FROM llm_calls WHERE date(called_at)=?",
+            (date,),
+        )
+        return int(row["total"] or 0)
+
+    def get_monthly_llm_tokens(self, year_month: str) -> int:
+        row = self.fetchone(
+            "SELECT SUM(total_tokens) as total FROM llm_calls WHERE strftime('%Y-%m', called_at)=?",
+            (year_month,),
+        )
+        return int(row["total"] or 0)
+
 
 # Singleton — pipeline modülleri bunu import eder
 _db: Database | None = None

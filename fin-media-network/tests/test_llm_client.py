@@ -104,8 +104,8 @@ class TestBudgetEnforcement:
             "model": "gpt-4o-mini",
             "input_tokens": 0,
             "output_tokens": 0,
-            "total_tokens": 0,
-            "cost_usd": 999.0,  # kesinlikle aşar
+            "total_tokens": 99_999_999,  # günlük token bütçesini kesinlikle aşar
+            "cost_usd": 0.0,
             "duration_ms": 10,
             "success": 1,
             "error_message": None,

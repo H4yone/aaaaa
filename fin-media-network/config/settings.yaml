@@ -24,12 +24,19 @@ content:
   tiktok_max_words: 130
   daily_tiktok_count: 4
 
+intelligence:
+  # Bir günde işlenecek üst sınırlar — tüm backlog'u işlemeyi önler.
+  # research en yüksek skorlu tier-1/2 kümeleri, analyst en yüksek rank'li sinyalleri alır.
+  research_max_clusters: 12
+  analyst_max_signals: 6
+
 llm:
   model: "gpt-4o-mini"
   max_tokens: 4096
   temperature: 0.3
-  daily_token_budget: 30000
-  monthly_token_budget: 900000
+  # Bütçe token cinsindendir ve gerçek token kullanımıyla (input+output) karşılaştırılır.
+  daily_token_budget: 200000
+  monthly_token_budget: 5000000
 
 tickers:
   bist:

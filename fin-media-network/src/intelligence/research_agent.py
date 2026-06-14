@@ -24,6 +24,7 @@ from src.intelligence.llm_client import BudgetExceeded, LLMClient
 logger = logging.getLogger(__name__)
 
 _TRANSMISSION_PATH = Path(__file__).parent.parent.parent / "config" / "transmission_matrix.yaml"
+_SETTINGS_PATH = Path(__file__).parent.parent.parent / "config" / "settings.yaml"
 
 _SYSTEM_PROMPT = """\
 Sen deneyimli bir Türk finansal analistisin.
@@ -81,6 +82,8 @@ class ResearchAgent:
         self._llm = llm_client or LLMClient()
         path = Path(transmission_path) if transmission_path else _TRANSMISSION_PATH
         self._rules: list[dict] = yaml.safe_load(path.read_text(encoding="utf-8"))["rules"]
+        settings = yaml.safe_load(_SETTINGS_PATH.read_text(encoding="utf-8"))
+        self._max_clusters: int = settings.get("intelligence", {}).get("research_max_clusters", 12)
 
     # ── Kural eşleştirme ──────────────────────────────────────────────────────
 
@@ -150,8 +153,8 @@ class ResearchAgent:
         db = get_db()
 
         clusters = db.fetchall(
-            "SELECT * FROM clusters WHERE date=? AND tier IN (1,2) ORDER BY score DESC",
-            (date_str,),
+            "SELECT * FROM clusters WHERE date=? AND tier IN (1,2) ORDER BY score DESC LIMIT ?",
+            (date_str, self._max_clusters),
         )
         if not clusters:
             logger.info("[ResearchAgent] %s tarihinde işlenecek Tier 1/2 küme yok", date_str)

@@ -30,6 +30,7 @@ from src.intelligence.llm_client import BudgetExceeded, LLMClient
 logger = logging.getLogger(__name__)
 
 _TRANSMISSION_PATH = Path(__file__).parent.parent.parent / "config" / "transmission_matrix.yaml"
+_SETTINGS_PATH = Path(__file__).parent.parent.parent / "config" / "settings.yaml"
 
 # Trigger koşul anahtarı → market_snapshots'taki ticker
 _CONDITION_TICKER: dict[str, str] = {
@@ -114,6 +115,8 @@ class AnalystAgent:
         path = Path(transmission_path) if transmission_path else _TRANSMISSION_PATH
         raw = yaml.safe_load(path.read_text(encoding="utf-8"))["rules"]
         self._rules: dict[str, dict] = {r["id"]: r for r in raw}
+        settings = yaml.safe_load(_SETTINGS_PATH.read_text(encoding="utf-8"))
+        self._max_signals: int = settings.get("intelligence", {}).get("analyst_max_signals", 6)
 
     # ── Trigger koşul değerlendirme ───────────────────────────────────────────
 
@@ -233,8 +236,8 @@ class AnalystAgent:
         db = get_db()
 
         signals = db.fetchall(
-            "SELECT * FROM signals WHERE date=? ORDER BY rank ASC",
-            (date_str,),
+            "SELECT * FROM signals WHERE date=? ORDER BY rank ASC LIMIT ?",
+            (date_str, self._max_signals),
         )
         if not signals:
             logger.info("[AnalystAgent] %s tarihinde işlenecek sinyal yok", date_str)
