@@ -37,6 +37,7 @@ def _make_orchestrator(tmp_path: Path, **overrides) -> PipelineOrchestrator:
         analyst_agent=MagicMock(**{"run.return_value": [3]}),
         narrative_writer=MagicMock(**{"run.return_value": [4, 5, 6]}),
         tts_generator=MagicMock(**{"run.return_value": [Path("a.mp3"), Path("b.mp3")]}),
+        video_generator=MagicMock(**{"run.return_value": [Path("a.mp4")]}),
         youtube_publisher=MagicMock(**{"run.return_value": [7]}),
         x_publisher=MagicMock(**{"run.return_value": [8]}),
         tiktok_publisher=MagicMock(**{"run.return_value": [9, 10]}),
@@ -96,7 +97,8 @@ class TestRunHappyPath:
         for expected in (
             "rss_fetcher", "market_fetcher", "deduplicator", "clusterer", "scorer",
             "research_agent", "analyst_agent", "narrative_writer",
-            "tts_generator", "youtube_publisher", "x_publisher", "tiktok_publisher",
+            "tts_generator", "video_generator",
+            "youtube_publisher", "x_publisher", "tiktok_publisher",
         ):
             assert expected in names
 
@@ -120,6 +122,7 @@ class TestRunHappyPath:
         assert step_map["analyst_agent"].output_count == 1
         assert step_map["narrative_writer"].output_count == 3
         assert step_map["tts_generator"].output_count == 2
+        assert step_map["video_generator"].output_count == 1
         assert step_map["youtube_publisher"].output_count == 1
         assert step_map["x_publisher"].output_count == 1
         assert step_map["tiktok_publisher"].output_count == 2

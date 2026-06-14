@@ -74,6 +74,7 @@ class PipelineOrchestrator:
         analyst_agent=None,
         narrative_writer=None,
         tts_generator=None,
+        video_generator=None,
         youtube_publisher=None,
         x_publisher=None,
         tiktok_publisher=None,
@@ -88,6 +89,7 @@ class PipelineOrchestrator:
         self._analyst = analyst_agent
         self._narrative = narrative_writer
         self._tts = tts_generator
+        self._video = video_generator
         self._youtube = youtube_publisher
         self._x = x_publisher
         self._tiktok = tiktok_publisher
@@ -154,6 +156,12 @@ class PipelineOrchestrator:
             from src.production.tts_generator import TTSGenerator
             self._tts = TTSGenerator()
         return self._tts
+
+    def _get_video(self):
+        if self._video is None:
+            from src.production.video_generator import VideoGenerator
+            self._video = VideoGenerator()
+        return self._video
 
     def _get_youtube(self):
         if self._youtube is None:
@@ -248,6 +256,7 @@ class PipelineOrchestrator:
         # ── Non-LLM adımlar (her zaman çalışır) ──────────────────────────────
         non_llm_steps: list[tuple[str, Callable]] = [
             ("tts_generator",      lambda: self._get_tts().run(run_date)),
+            ("video_generator",    lambda: self._get_video().run(run_date)),
             ("youtube_publisher",  lambda: self._get_youtube().run(run_date)),
             ("x_publisher",        lambda: self._get_x().run(run_date)),
             ("tiktok_publisher",   lambda: self._get_tiktok().run(run_date)),

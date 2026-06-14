@@ -26,6 +26,35 @@ logger = logging.getLogger(__name__)
 
 _MODEL_ID = "eleven_multilingual_v2"
 _OUTPUT_FORMAT = "mp3_44100_128"
+_TTS_BASE_URL = "https://api.elevenlabs.io/v1/text-to-speech"
+
+
+class _ElevenLabsHTTPClient:
+    """ElevenLabs TTS için hafif HTTP istemcisi.
+
+    Resmi `elevenlabs` SDK'sı Windows'ta uzun-dosya-yolu sınırı nedeniyle
+    kurulamadığından doğrudan REST API kullanılır. Arayüz SDK ile aynıdır:
+    `client.text_to_speech.convert(...)` → ses byte'larını yield eden iteratör.
+    """
+
+    def __init__(self, api_key: str) -> None:
+        self._api_key = api_key
+        self.text_to_speech = self  # SDK'daki client.text_to_speech.convert ile aynı erişim
+
+    def convert(self, *, voice_id: str, text: str, model_id: str, output_format: str):
+        import httpx
+        with httpx.stream(
+            "POST",
+            f"{_TTS_BASE_URL}/{voice_id}",
+            params={"output_format": output_format},
+            headers={"xi-api-key": self._api_key, "accept": "audio/mpeg"},
+            json={"text": text, "model_id": model_id},
+            timeout=120.0,
+        ) as resp:
+            resp.raise_for_status()
+            for chunk in resp.iter_bytes():
+                if chunk:
+                    yield chunk
 
 
 def _parse_dialogue(text: str) -> list[tuple[str, str]]:
@@ -56,8 +85,7 @@ class TTSGenerator:
 
     def _get_client(self):
         if self._client is None:
-            from elevenlabs.client import ElevenLabs
-            self._client = ElevenLabs(api_key=os.getenv("ELEVENLABS_API_KEY", ""))
+            self._client = _ElevenLabsHTTPClient(api_key=os.getenv("ELEVENLABS_API_KEY", ""))
         return self._client
 
     def _voice_for(self, speaker: str) -> str:
