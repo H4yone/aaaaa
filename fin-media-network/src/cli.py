@@ -7,6 +7,8 @@ Kullanım:
   python -m src.cli scheduled               # zamanlayıcı başlat (Ctrl+C ile dur)
   python -m src.cli status                  # DB özet raporu
   python -m src.cli init-db                 # veritabanı tabloları oluştur
+  python -m src.cli approve 135             # belirli içerik id'lerini onayla
+  python -m src.cli approve --date 2026-06-14 --platform youtube  # tarihe göre onayla
 """
 from __future__ import annotations
 
@@ -162,6 +164,68 @@ def cmd_init_db(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_approve(args: argparse.Namespace) -> int:
+    """İçeriği insan onayından geçirir — yalnızca SPK-uyumlu satırlar onaylanır."""
+    from datetime import timezone
+    from src.db.database import get_db
+    db = get_db()
+    now_utc = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+
+    cols = "id, platform, title, compliance_passed, human_approved"
+    if args.ids:
+        placeholders = ",".join("?" * len(args.ids))
+        rows = db.fetchall(
+            f"SELECT {cols} FROM content WHERE id IN ({placeholders})",
+            tuple(args.ids),
+        )
+        for missing in set(args.ids) - {r["id"] for r in rows}:
+            logger.warning("İçerik bulunamadı: #%s", missing)
+    elif args.date:
+        try:
+            date.fromisoformat(args.date)
+        except ValueError:
+            logger.error("Geçersiz tarih formatı: %s  (YYYY-MM-DD bekleniyor)", args.date)
+            return 1
+        query = f"SELECT {cols} FROM content WHERE date=?"
+        params: list = [args.date]
+        if args.platform:
+            query += " AND platform=?"
+            params.append(args.platform)
+        rows = db.fetchall(query, tuple(params))
+    else:
+        logger.error("En az bir içerik id'si ya da --date gerekli.")
+        return 1
+
+    if not rows:
+        print("Onaylanacak içerik bulunamadı.")
+        return 0
+
+    approved, already, noncompliant = [], [], []
+    for r in rows:
+        if not r["compliance_passed"]:
+            noncompliant.append(r["id"])
+        elif r["human_approved"]:
+            already.append(r["id"])
+        else:
+            db.execute(
+                "UPDATE content SET human_approved=1, approved_at=? WHERE id=?",
+                (now_utc, r["id"]),
+            )
+            approved.append(r)
+
+    print(f"\n  Onaylandı ({len(approved)}):")
+    for r in approved:
+        print(f"    #{r['id']:<4} {r['platform']:<12} {str(r['title'])[:50]}")
+    if not approved:
+        print("    —")
+    if already:
+        print(f"  Zaten onaylı: {', '.join('#' + str(i) for i in already)}")
+    if noncompliant:
+        print(f"  SPK UYUMSUZ — onaylanmadı: {', '.join('#' + str(i) for i in noncompliant)}")
+    print()
+    return 0
+
+
 # ── Argparse kurulumu ─────────────────────────────────────────────────────────
 
 def build_parser() -> argparse.ArgumentParser:
@@ -185,6 +249,15 @@ def build_parser() -> argparse.ArgumentParser:
     # init-db
     sub.add_parser("init-db", help="Veritabanı tablolarını oluştur")
 
+    # approve
+    p_app = sub.add_parser("approve", help="İçeriği insan onayından geçir (human_approved=1)")
+    p_app.add_argument("ids", nargs="*", type=int, metavar="ID",
+                       help="Onaylanacak içerik id'leri")
+    p_app.add_argument("--date", metavar="YYYY-MM-DD",
+                       help="Bu tarihteki tüm uyumlu içeriği onayla")
+    p_app.add_argument("--platform",
+                       help="--date ile: sadece bu platform (örn. youtube)")
+
     return parser
 
 
@@ -197,6 +270,7 @@ def main(argv: list[str] | None = None) -> int:
         "scheduled": cmd_scheduled,
         "status":    cmd_status,
         "init-db":   cmd_init_db,
+        "approve":   cmd_approve,
     }
     return handlers[args.command](args)
 

@@ -342,3 +342,59 @@ class TestCLI:
         exit_code = main(["init-db"])
         assert exit_code == 0
         assert (tmp_path / "new.db").exists()
+
+
+class TestApproveCommand:
+    @staticmethod
+    def _insert(db, date_str: str, compliance_passed: int = 1) -> int:
+        return db.insert_content({
+            "date": date_str,
+            "platform": "youtube",
+            "title": "BIST analizi başlık",
+            "body": "BIST analizi. Bu içerik yatırım tavsiyesi değildir.",
+            "word_count": 8,
+            "compliance_passed": compliance_passed,
+            "compliance_warnings": json.dumps([]),
+            "prompt_version_id": None,
+        })
+
+    def test_approve_by_id_sets_human_approved(self, tmp_db, monkeypatch):
+        monkeypatch.setenv("DB_PATH", str(tmp_db.db_path))
+        today = date.today().isoformat()
+        cid = self._insert(tmp_db, today)
+
+        from src.cli import main
+        assert main(["approve", str(cid)]) == 0
+
+        row = tmp_db.fetchone("SELECT human_approved, approved_at FROM content WHERE id=?", (cid,))
+        assert row["human_approved"] == 1
+        assert row["approved_at"] is not None
+
+    def test_approve_skips_noncompliant(self, tmp_db, monkeypatch):
+        monkeypatch.setenv("DB_PATH", str(tmp_db.db_path))
+        today = date.today().isoformat()
+        cid = self._insert(tmp_db, today, compliance_passed=0)
+
+        from src.cli import main
+        assert main(["approve", str(cid)]) == 0
+
+        row = tmp_db.fetchone("SELECT human_approved FROM content WHERE id=?", (cid,))
+        assert row["human_approved"] == 0
+
+    def test_approve_by_date_approves_all_compliant(self, tmp_db, monkeypatch):
+        monkeypatch.setenv("DB_PATH", str(tmp_db.db_path))
+        today = date.today().isoformat()
+        c1 = self._insert(tmp_db, today)
+        c2 = self._insert(tmp_db, today)
+
+        from src.cli import main
+        assert main(["approve", "--date", today]) == 0
+
+        for cid in (c1, c2):
+            row = tmp_db.fetchone("SELECT human_approved FROM content WHERE id=?", (cid,))
+            assert row["human_approved"] == 1
+
+    def test_approve_without_id_or_date_exits_one(self, tmp_db, monkeypatch):
+        monkeypatch.setenv("DB_PATH", str(tmp_db.db_path))
+        from src.cli import main
+        assert main(["approve"]) == 1

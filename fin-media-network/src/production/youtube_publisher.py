@@ -187,7 +187,7 @@ def _run_auth_flow() -> None:
         "installed": {
             "client_id": os.getenv("YOUTUBE_CLIENT_ID", ""),
             "client_secret": os.getenv("YOUTUBE_CLIENT_SECRET", ""),
-            "redirect_uris": ["urn:ietf:wg:oauth:2.0:oob"],
+            "redirect_uris": ["http://localhost"],
             "auth_uri": "https://accounts.google.com/o/oauth2/auth",
             "token_uri": "https://oauth2.googleapis.com/token",
         }
@@ -205,6 +205,8 @@ def _run_auth_flow() -> None:
 
 if __name__ == "__main__":
     import sys
+    from dotenv import load_dotenv
+    load_dotenv()
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
     if "--auth" in sys.argv:
         _run_auth_flow()

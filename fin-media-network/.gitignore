@@ -15,4 +15,5 @@ output/
 .coverage
 htmlcov/
 token.json
+*token.json
 credentials.json
